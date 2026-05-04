@@ -1,0 +1,18 @@
+# .NET
+backend/**/bin/
+backend/**/obj/
+backend/**/*.user
+backend/**/.vs/
+
+# Variables de entorno (NUNCA subir esto)
+*.env
+.env
+appsettings.Development.json
+
+# Node (por si se usa en frontend)
+frontend/node_modules/
+frontend/.next/
+
+# OS
+.DS_Store
+Thumbs.db
