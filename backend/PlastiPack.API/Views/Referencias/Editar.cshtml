@@ -1,0 +1,211 @@
+@model PlastiPack.API.Models.Referencia
+@{
+    ViewData["Title"] = "Editar Referencia";
+    ViewData["ActivePage"] = "Referencias";
+}
+
+<div class="page-header">
+    <div class="page-header-left">
+        <p class="breadcrumb-custom">
+            <a asp-action="Index">Referencias</a> /
+            <a asp-action="Detalle" asp-route-id="@Model.Id">@Model.Codigo</a> /
+            Editar
+        </p>
+        <h1>Editar Referencia</h1>
+        <p>Modifica los campos necesarios y guarda los cambios</p>
+    </div>
+</div>
+
+<form asp-action="Editar" asp-route-id="@Model.Id" method="post">
+    @Html.AntiForgeryToken()
+    <input type="hidden" asp-for="Id"/>
+    <input type="hidden" asp-for="CreatedAt"/>
+    <input type="hidden" asp-for="CreadoPor"/>
+
+    <!-- Identificación -->
+    <div class="card-custom">
+        <p class="card-custom-title"><i class="bi bi-tag"></i> Identificación</p>
+        <div class="form-grid-3">
+            <div class="form-group">
+                <label class="form-label-custom">Código *</label>
+                <input asp-for="Codigo" class="form-control-custom" required/>
+            </div>
+            <div class="form-group">
+                <label class="form-label-custom">Referencia Corta</label>
+                <input asp-for="ReferenciCorta" class="form-control-custom"/>
+            </div>
+            <div class="form-group">
+                <label class="form-label-custom">Nombre</label>
+                <input asp-for="Nombre" class="form-control-custom"/>
+            </div>
+            <div class="form-group">
+                <label class="form-label-custom">Grupo</label>
+                <input asp-for="Grupo" class="form-control-custom"/>
+            </div>
+            <div class="form-group">
+                <label class="form-label-custom">Código de Barras</label>
+                <input asp-for="CodigoBarras" class="form-control-custom"/>
+            </div>
+            <div class="form-group">
+                <label class="form-label-custom">Estado</label>
+                <select asp-for="Estado" class="form-control-custom">
+                    <option value="Activo">Activo</option>
+                    <option value="Inactivo">Inactivo</option>
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <!-- Características físicas -->
+    <div class="card-custom">
+        <p class="card-custom-title"><i class="bi bi-rulers"></i> Características Físicas</p>
+        <div class="form-grid-3">
+            <div class="form-group">
+                <label class="form-label-custom">Tipo de Producto</label>
+                <select asp-for="TipoProducto" class="form-control-custom">
+                    <option value="">Seleccionar...</option>
+                    <option value="B-Bolsa">B - Bolsa</option>
+                    <option value="C-Capa">C - Capa</option>
+                    <option value="L-Lamina">L - Lámina</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label-custom">Materia Prima</label>
+                <select asp-for="MateriaPrima" class="form-control-custom">
+                    <option value="">Seleccionar...</option>
+                    <option value="polietileno_alta">Polietileno Alta Densidad</option>
+                    <option value="polietileno_baja">Polietileno Baja Densidad</option>
+                    <option value="polipropileno">Polipropileno</option>
+                    <option value="otro">Otro</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label-custom">Color</label>
+                <input asp-for="Color" class="form-control-custom"/>
+            </div>
+            <div class="form-group">
+                <label class="form-label-custom">Troquelado</label>
+                <input asp-for="Troquelado" class="form-control-custom"/>
+            </div>
+            <div class="form-group">
+                <label class="form-label-custom">Medida</label>
+                <select asp-for="Medida" class="form-control-custom">
+                    <option value="">Seleccionar...</option>
+                    <option value="PUL-Pulgadas">Pulgadas</option>
+                    <option value="CM-Centimetros">Centímetros</option>
+                    <option value="MM-Milimetros">Milímetros</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label-custom">Ancho</label>
+                <input asp-for="Ancho" type="number" step="0.01" class="form-control-custom"/>
+            </div>
+            <div class="form-group">
+                <label class="form-label-custom">Alto</label>
+                <input asp-for="Alto" type="number" step="0.01" class="form-control-custom"/>
+            </div>
+            <div class="form-group">
+                <label class="form-label-custom">Fuelle Izquierdo</label>
+                <input asp-for="FuelleIzquierdo" type="number" step="0.01" class="form-control-custom"/>
+            </div>
+            <div class="form-group">
+                <label class="form-label-custom">Fuelle Derecho</label>
+                <input asp-for="FuelleDerecho" type="number" step="0.01" class="form-control-custom"/>
+            </div>
+            <div class="form-group">
+                <label class="form-label-custom">Fuelle Superior</label>
+                <input asp-for="FuelleSuperior" type="number" step="0.01" class="form-control-custom"/>
+            </div>
+            <div class="form-group">
+                <label class="form-label-custom">Fuelle Fondo</label>
+                <input asp-for="FuelleFondo" type="number" step="0.01" class="form-control-custom"/>
+            </div>
+            <div class="form-group">
+                <label class="form-label-custom">Calibre</label>
+                <input asp-for="Calibre" type="number" step="0.01" class="form-control-custom"/>
+            </div>
+        </div>
+    </div>
+
+    <!-- Impresión y Sellado -->
+    <div class="card-custom">
+        <p class="card-custom-title"><i class="bi bi-printer"></i> Impresión y Sellado</p>
+        <div class="form-grid-3">
+            <div class="form-group">
+                <label class="form-label-custom">¿Tiene Impresión?</label>
+                <select asp-for="Impresion" class="form-control-custom">
+                    <option value="false">No</option>
+                    <option value="true">Sí</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label-custom">Tipo de Impresión</label>
+                <input asp-for="TipoImpresion" class="form-control-custom"/>
+            </div>
+            <div class="form-group">
+                <label class="form-label-custom">Colores de Impresión</label>
+                <input asp-for="ColoresImpresion" class="form-control-custom"/>
+            </div>
+            <div class="form-group">
+                <label class="form-label-custom">Tipo de Sellado</label>
+                <select asp-for="TipoSellado" class="form-control-custom">
+                    <option value="">Seleccionar...</option>
+                    <option value="F-Sellado Fondo">F - Sellado Fondo</option>
+                    <option value="L-Sellado Lateral">L - Sellado Lateral</option>
+                    <option value="D-Sellado Doble">D - Sellado Doble</option>
+                    <option value="T-Sellado Triple">T - Sellado Triple</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label-custom">Tratado Cara</label>
+                <select asp-for="TratadoCara" class="form-control-custom">
+                    <option value="0-Ninguno">0 - Ninguno</option>
+                    <option value="1-Simple">1 - Simple</option>
+                    <option value="2-Doble">2 - Doble</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label-custom">Tipo de Cliente</label>
+                <input asp-for="TipoCliente" class="form-control-custom"/>
+            </div>
+        </div>
+    </div>
+
+    <!-- Costos -->
+    <div class="card-custom">
+        <p class="card-custom-title"><i class="bi bi-currency-dollar"></i> Costos y Presentación</p>
+        <div class="form-grid-3">
+            <div class="form-group">
+                <label class="form-label-custom">Costo de Producción</label>
+                <input asp-for="CostoProduccion" type="number" step="0.0001" class="form-control-custom"/>
+            </div>
+            <div class="form-group">
+                <label class="form-label-custom">Impuesto (%)</label>
+                <input asp-for="Impuesto" type="number" step="0.01" class="form-control-custom"/>
+            </div>
+            <div class="form-group">
+                <label class="form-label-custom">Unidad de Medida</label>
+                <select asp-for="UnidadMedida" class="form-control-custom">
+                    <option value="">Seleccionar...</option>
+                    <option value="Unidades">Unidades</option>
+                    <option value="Kilos">Kilos</option>
+                    <option value="Metros">Metros</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label-custom">Presentación</label>
+                <input asp-for="Presentacion" class="form-control-custom"/>
+            </div>
+        </div>
+    </div>
+
+    <div style="display:flex; gap:12px; justify-content:flex-end; margin-bottom:32px">
+        <a asp-action="Detalle" asp-route-id="@Model.Id" class="btn-secondary-custom">
+            <i class="bi bi-x-lg"></i> Cancelar
+        </a>
+        <button type="submit" class="btn-primary-custom">
+            <i class="bi bi-check-lg"></i> Guardar Cambios
+        </button>
+    </div>
+
+</form>

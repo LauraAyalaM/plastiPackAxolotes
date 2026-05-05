@@ -1,0 +1,197 @@
+@model PlastiPack.API.Models.Referencia
+@{
+    ViewData["Title"] = "Detalle de Referencia";
+    ViewData["ActivePage"] = "Referencias";
+}
+
+<div class="page-header">
+    <div class="page-header-left">
+        <p class="breadcrumb-custom">
+            <a asp-action="Index">Referencias</a> / Detalle
+        </p>
+        <h1>@Model.Nombre</h1>
+        <p style="font-family:monospace; font-size:13px">@Model.Codigo</p>
+    </div>
+    <div style="display:flex; gap:10px">
+        @if (User.IsInRole("jefe_produccion"))
+        {
+            <a asp-action="Editar" asp-route-id="@Model.Id"
+               class="btn-primary-custom">
+                <i class="bi bi-pencil"></i> Editar
+            </a>
+        }
+        <a asp-action="Index" class="btn-secondary-custom">
+            <i class="bi bi-arrow-left"></i> Volver
+        </a>
+    </div>
+</div>
+
+<div style="display:grid; grid-template-columns:1fr 1fr; gap:24px">
+
+    <!-- Identificación -->
+    <div class="card-custom">
+        <p class="card-custom-title"><i class="bi bi-tag"></i> Identificación</p>
+        <div style="display:flex; flex-direction:column; gap:12px">
+            <div>
+                <div class="form-label-custom">Código</div>
+                <div style="font-family:monospace; font-size:13px">@Model.Codigo</div>
+            </div>
+            <div>
+                <div class="form-label-custom">Referencia Corta</div>
+                <div>@(Model.ReferenciCorta ?? "—")</div>
+            </div>
+            <div>
+                <div class="form-label-custom">Nombre</div>
+                <div style="font-weight:500">@(Model.Nombre ?? "—")</div>
+            </div>
+            <div>
+                <div class="form-label-custom">Grupo</div>
+                <div>@(Model.Grupo ?? "—")</div>
+            </div>
+            <div>
+                <div class="form-label-custom">Estado</div>
+                <span class="@(Model.Estado == "Activo" ? "badge-success" : "badge-danger")">
+                    @Model.Estado
+                </span>
+            </div>
+            <div>
+                <div class="form-label-custom">Código de Barras</div>
+                <div>@(Model.CodigoBarras ?? "—")</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Características físicas -->
+    <div class="card-custom">
+        <p class="card-custom-title"><i class="bi bi-rulers"></i> Características Físicas</p>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px">
+            <div>
+                <div class="form-label-custom">Tipo Producto</div>
+                <div>@(Model.TipoProducto ?? "—")</div>
+            </div>
+            <div>
+                <div class="form-label-custom">Materia Prima</div>
+                <div>@(Model.MateriaPrima ?? "—")</div>
+            </div>
+            <div>
+                <div class="form-label-custom">Color</div>
+                <div>@(Model.Color ?? "—")</div>
+            </div>
+            <div>
+                <div class="form-label-custom">Troquelado</div>
+                <div>@(Model.Troquelado ?? "—")</div>
+            </div>
+            <div>
+                <div class="form-label-custom">Ancho</div>
+                <div>@(Model.Ancho?.ToString("F2") ?? "—") @Model.Medida</div>
+            </div>
+            <div>
+                <div class="form-label-custom">Alto</div>
+                <div>@(Model.Alto?.ToString("F2") ?? "—") @Model.Medida</div>
+            </div>
+            <div>
+                <div class="form-label-custom">Fuelle Izquierdo</div>
+                <div>@(Model.FuelleIzquierdo?.ToString("F2") ?? "—")</div>
+            </div>
+            <div>
+                <div class="form-label-custom">Fuelle Derecho</div>
+                <div>@(Model.FuelleDerecho?.ToString("F2") ?? "—")</div>
+            </div>
+            <div>
+                <div class="form-label-custom">Fuelle Superior</div>
+                <div>@(Model.FuelleSuperior?.ToString("F2") ?? "—")</div>
+            </div>
+            <div>
+                <div class="form-label-custom">Fuelle Fondo</div>
+                <div>@(Model.FuelleFondo?.ToString("F2") ?? "—")</div>
+            </div>
+            <div>
+                <div class="form-label-custom">Calibre</div>
+                <div>@(Model.Calibre?.ToString("F2") ?? "—")</div>
+            </div>
+            <div>
+                <div class="form-label-custom">Medida</div>
+                <div>@(Model.Medida ?? "—")</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Impresión y sellado -->
+    <div class="card-custom">
+        <p class="card-custom-title"><i class="bi bi-printer"></i> Impresión y Sellado</p>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px">
+            <div>
+                <div class="form-label-custom">Impresión</div>
+                <span class="@(Model.Impresion ? "badge-info" : "badge-warning")">
+                    @(Model.Impresion ? "Con impresión" : "Sin impresión")
+                </span>
+            </div>
+            <div>
+                <div class="form-label-custom">Tipo Impresión</div>
+                <div>@(Model.TipoImpresion ?? "—")</div>
+            </div>
+            <div>
+                <div class="form-label-custom">Colores Impresión</div>
+                <div>@(Model.ColoresImpresion ?? "—")</div>
+            </div>
+            <div>
+                <div class="form-label-custom">Tipo Sellado</div>
+                <div>@(Model.TipoSellado ?? "—")</div>
+            </div>
+            <div>
+                <div class="form-label-custom">Tratado Cara</div>
+                <div>@(Model.TratadoCara ?? "—")</div>
+            </div>
+            <div>
+                <div class="form-label-custom">Tipo Cliente</div>
+                <div>@(Model.TipoCliente ?? "—")</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Costos e inventario -->
+    <div class="card-custom">
+        <p class="card-custom-title"><i class="bi bi-currency-dollar"></i> Costos e Inventario</p>
+        <div style="display:flex; flex-direction:column; gap:12px">
+            <div>
+                <div class="form-label-custom">Costo de Producción</div>
+                <div style="font-size:18px; font-weight:600; color:var(--color-dark)">
+                    $@(Model.CostoProduccion?.ToString("N2") ?? "0.00")
+                </div>
+            </div>
+            <div>
+                <div class="form-label-custom">Impuesto</div>
+                <div>@(Model.Impuesto?.ToString("F2") ?? "0")%</div>
+            </div>
+            <div>
+                <div class="form-label-custom">Unidad de Medida</div>
+                <div>@(Model.UnidadMedida ?? "—")</div>
+            </div>
+            <div>
+                <div class="form-label-custom">Presentación</div>
+                <div>@(Model.Presentacion ?? "—")</div>
+            </div>
+            @if (Model.Inventario != null)
+            {
+                <div style="background:var(--color-light); border-radius:8px; padding:16px; margin-top:8px">
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px">
+                        <div>
+                            <div class="form-label-custom">Stock Disponible</div>
+                            <div style="font-size:22px; font-weight:700;
+                                        color:@(Model.Inventario.StockDisponible > 0 ? "var(--color-success)" : "var(--color-danger)")">
+                                @Model.Inventario.StockDisponible
+                            </div>
+                        </div>
+                        <div>
+                            <div class="form-label-custom">Stock Reservado</div>
+                            <div style="font-size:22px; font-weight:700; color:var(--color-warning)">
+                                @Model.Inventario.StockReservado
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+
+</div>

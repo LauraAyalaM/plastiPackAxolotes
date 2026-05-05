@@ -1,0 +1,208 @@
+@model IEnumerable<PlastiPack.API.Models.Referencia>
+@{
+    ViewData["Title"] = "Referencias";
+    ViewData["ActivePage"] = "Referencias";
+    var paginaActual  = (int)ViewBag.PaginaActual;
+    var totalPaginas  = (int)ViewBag.TotalPaginas;
+}
+
+<div class="page-header">
+    <div class="page-header-left">
+        <p class="breadcrumb-custom">Catálogo</p>
+        <h1>Referencias</h1>
+        <p>@ViewBag.Total registros encontrados</p>
+    </div>
+    @if (User.IsInRole("jefe_produccion"))
+    {
+        <a asp-action="Crear" class="btn-primary-custom">
+            <i class="bi bi-plus-lg"></i> Nueva Referencia
+        </a>
+    }
+</div>
+
+<!-- FILTROS -->
+<div class="card-custom">
+    <form method="get" asp-action="Index">
+        <div class="filter-bar">
+            <input type="text"
+                   name="busqueda"
+                   value="@ViewBag.Busqueda"
+                   placeholder="Buscar por código o nombre..."
+                   class="form-control-custom"
+                   style="max-width:280px"/>
+
+            <select name="estado" class="form-control-custom">
+                <option value="">Todos los estados</option>
+                <option value="Activo"   selected="@(ViewBag.Estado=="Activo")">Activo</option>
+                <option value="Inactivo" selected="@(ViewBag.Estado=="Inactivo")">Inactivo</option>
+            </select>
+
+            <select name="tipoProducto" class="form-control-custom">
+                <option value="">Tipo de producto</option>
+                <option value="B-Bolsa"      selected="@(ViewBag.TipoProducto=="B-Bolsa")">Bolsa</option>
+                <option value="C-Capa"       selected="@(ViewBag.TipoProducto=="C-Capa")">Capa</option>
+                <option value="L-Lamina"     selected="@(ViewBag.TipoProducto=="L-Lamina")">Lámina</option>
+            </select>
+
+            <select name="materiaPrima" class="form-control-custom">
+                <option value="">Materia prima</option>
+                <option value="polietileno_alta" selected="@(ViewBag.MateriaPrima=="polietileno_alta")">Polietileno Alta Densidad</option>
+                <option value="polietileno_baja" selected="@(ViewBag.MateriaPrima=="polietileno_baja")">Polietileno Baja Densidad</option>
+                <option value="polipropileno"    selected="@(ViewBag.MateriaPrima=="polipropileno")">Polipropileno</option>
+                <option value="otro"             selected="@(ViewBag.MateriaPrima=="otro")">Otro</option>
+            </select>
+
+            @if (ViewBag.Grupos != null)
+            {
+                <select name="grupo" class="form-control-custom">
+                    <option value="">Todos los grupos</option>
+                    @foreach (var g in ViewBag.Grupos)
+                    {
+                        <option value="@g" selected="@(ViewBag.Grupo==g)">@g</option>
+                    }
+                </select>
+            }
+
+            <button type="submit" class="btn-primary-custom">
+                <i class="bi bi-search"></i> Filtrar
+            </button>
+            <a asp-action="Index" class="btn-secondary-custom">
+                <i class="bi bi-x-lg"></i> Limpiar
+            </a>
+        </div>
+    </form>
+</div>
+
+<!-- TABLA -->
+<div class="card-custom">
+    @if (!Model.Any())
+    {
+        <div style="text-align:center; padding:40px; color:var(--color-mid)">
+            <i class="bi bi-inbox" style="font-size:40px; display:block; margin-bottom:12px"></i>
+            No se encontraron referencias con los filtros aplicados.
+        </div>
+    }
+    else
+    {
+        <table class="table-custom">
+            <thead>
+                <tr>
+                    <th>Código</th>
+                    <th>Nombre</th>
+                    <th>Grupo</th>
+                    <th>Tipo</th>
+                    <th>Materia Prima</th>
+                    <th>Stock</th>
+                    <th>Estado</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var r in Model)
+                {
+                    <tr>
+                        <td>
+                            <span style="font-family:monospace; font-size:12px; color:var(--color-mid)">
+                                @r.Codigo
+                            </span>
+                        </td>
+                        <td>
+                            <div style="font-weight:500">@r.Nombre</div>
+                            <div style="font-size:12px; color:var(--color-mid)">@r.ReferenciCorta</div>
+                        </td>
+                        <td>@r.Grupo</td>
+                        <td>@r.TipoProducto</td>
+                        <td>
+                            @switch (r.MateriaPrima)
+                            {
+                                case "polietileno_alta": <text>PE Alta Densidad</text> break;
+                                case "polietileno_baja": <text>PE Baja Densidad</text> break;
+                                case "polipropileno":    <text>Polipropileno</text>    break;
+                                default: @r.MateriaPrima break;
+                            }
+                        </td>
+                        <td>
+                            @if (r.Inventario != null)
+                            {
+                                <span class="@(r.Inventario.StockDisponible > 0 ? "badge-success" : "badge-danger")">
+                                    @r.Inventario.StockDisponible
+                                </span>
+                            }
+                            else
+                            {
+                                <span class="badge-warning">Sin inv.</span>
+                            }
+                        </td>
+                        <td>
+                            <span class="@(r.Estado == "Activo" ? "badge-success" : "badge-danger")">
+                                @r.Estado
+                            </span>
+                        </td>
+                        <td>
+                            <div style="display:flex; gap:6px">
+                                <a asp-action="Detalle" asp-route-id="@r.Id"
+                                   class="btn-secondary-custom btn-sm-custom"
+                                   title="Ver detalle">
+                                    <i class="bi bi-eye"></i>
+                                </a>
+                                @if (User.IsInRole("jefe_produccion"))
+                                {
+                                    <a asp-action="Editar" asp-route-id="@r.Id"
+                                       class="btn-secondary-custom btn-sm-custom"
+                                       title="Editar">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
+                                    <form asp-action="CambiarEstado" asp-route-id="@r.Id"
+                                          method="post" style="display:inline">
+                                        @Html.AntiForgeryToken()
+                                        <button type="submit"
+                                                class="@(r.Estado=="Activo" ? "btn-danger-custom" : "btn-secondary-custom") btn-sm-custom"
+                                                title="@(r.Estado=="Activo" ? "Inactivar" : "Activar")">
+                                            <i class="bi @(r.Estado=="Activo" ? "bi-toggle-on" : "bi-toggle-off")"></i>
+                                        </button>
+                                    </form>
+                                }
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+
+        <!-- PAGINACIÓN -->
+        @if (totalPaginas > 1)
+        {
+            <div class="pagination-custom">
+                @if (paginaActual > 1)
+                {
+                    <a asp-action="Index"
+                       asp-route-pagina="@(paginaActual - 1)"
+                       asp-route-busqueda="@ViewBag.Busqueda"
+                       asp-route-estado="@ViewBag.Estado">
+                        <i class="bi bi-chevron-left"></i>
+                    </a>
+                }
+                @for (int i = Math.Max(1, paginaActual - 2);
+                          i <= Math.Min(totalPaginas, paginaActual + 2); i++)
+                {
+                    <a asp-action="Index"
+                       asp-route-pagina="@i"
+                       asp-route-busqueda="@ViewBag.Busqueda"
+                       asp-route-estado="@ViewBag.Estado"
+                       class="@(i == paginaActual ? "active-page" : "")">
+                        @i
+                    </a>
+                }
+                @if (paginaActual < totalPaginas)
+                {
+                    <a asp-action="Index"
+                       asp-route-pagina="@(paginaActual + 1)"
+                       asp-route-busqueda="@ViewBag.Busqueda"
+                       asp-route-estado="@ViewBag.Estado">
+                        <i class="bi bi-chevron-right"></i>
+                    </a>
+                }
+            </div>
+        }
+    }
+</div>
