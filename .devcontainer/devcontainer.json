@@ -1,0 +1,25 @@
+{
+  "name": "PlastiPack .NET",
+  "image": "mcr.microsoft.com/devcontainers/dotnet:10.0",
+  "features": {
+    "ghcr.io/devcontainers/features/dotnet:2": {
+      "version": "10.0"
+    }
+  },
+  "postCreateCommand": "cd backend/PlastiPack.API && dotnet restore",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-dotnettools.csdevkit",
+        "ms-dotnettools.csharp",
+        "github.vscode-pull-request-github",
+        "eamodio.gitlens"
+      ]
+    }
+  },
+  "forwardPorts": [5000, 5001],
+  "portsAttributes": {
+    "5000": { "label": "PlastiPack HTTP" },
+    "5001": { "label": "PlastiPack HTTPS" }
+  }
+}
