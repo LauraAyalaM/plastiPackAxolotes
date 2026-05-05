@@ -1,49 +1,101 @@
-﻿<!DOCTYPE html>
-<html lang="en">
+<!DOCTYPE html>
+<html lang="es">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>@ViewData["Title"] - PlastiPack.API</title>
-    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
-    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
-    <link rel="stylesheet" href="~/PlastiPack.API.styles.css" asp-append-version="true" />
+    <title>@ViewData["Title"] — PlastiPack</title>
+
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet"
+          href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"/>
+
+    <!-- Estilos PlastiPack -->
+    <link rel="stylesheet" href="~/css/variables.css" />
+    <link rel="stylesheet" href="~/css/site.css" />
+
+    @await RenderSectionAsync("Styles", required: false)
 </head>
 <body>
-    <header>
-        <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-light bg-white border-bottom box-shadow mb-3">
-            <div class="container-fluid">
-                <a class="navbar-brand" asp-area="" asp-controller="Home" asp-action="Index">PlastiPack.API</a>
-                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse" aria-controls="navbarSupportedContent"
-                        aria-expanded="false" aria-label="Toggle navigation">
-                    <span class="navbar-toggler-icon"></span>
-                </button>
-                <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
-                    <ul class="navbar-nav flex-grow-1">
-                        <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Index">Home</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
-                        </li>
-                    </ul>
-                </div>
-            </div>
-        </nav>
-    </header>
-    <div class="container">
-        <main role="main" class="pb-3">
-            @RenderBody()
-        </main>
-    </div>
 
-    <footer class="border-top footer text-muted">
-        <div class="container">
-            &copy; 2026 - PlastiPack.API - <a asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
-        </div>
-    </footer>
-    <script src="~/lib/jquery/dist/jquery.min.js"></script>
-    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="~/js/site.js" asp-append-version="true"></script>
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+        <div class="sidebar-logo">Plasti<span>Pack</span></div>
+
+        <span class="sidebar-section-label">Principal</span>
+        <a class="sidebar-item @(ViewData["ActivePage"]?.ToString() == "Dashboard" ? "active" : "")"
+           asp-controller="Home" asp-action="Index">
+            <i class="bi bi-grid-1x2"></i> Dashboard
+        </a>
+
+        <span class="sidebar-section-label">Catálogo</span>
+        <a class="sidebar-item @(ViewData["ActivePage"]?.ToString() == "Referencias" ? "active" : "")"
+           asp-controller="Referencias" asp-action="Index">
+            <i class="bi bi-box-seam"></i> Referencias
+        </a>
+
+        <span class="sidebar-section-label">Comercial</span>
+        <a class="sidebar-item @(ViewData["ActivePage"]?.ToString() == "Pedidos" ? "active" : "")"
+           asp-controller="Pedidos" asp-action="Index">
+            <i class="bi bi-cart3"></i> Pedidos
+        </a>
+        <a class="sidebar-item @(ViewData["ActivePage"]?.ToString() == "Clientes" ? "active" : "")"
+           asp-controller="Clientes" asp-action="Index">
+            <i class="bi bi-people"></i> Clientes
+        </a>
+
+        <span class="sidebar-section-label">Producción</span>
+        <a class="sidebar-item @(ViewData["ActivePage"]?.ToString() == "Ordenes" ? "active" : "")"
+           asp-controller="OrdenesProduccion" asp-action="Index">
+            <i class="bi bi-gear"></i> Órdenes
+        </a>
+        <a class="sidebar-item @(ViewData["ActivePage"]?.ToString() == "Rollos" ? "active" : "")"
+           asp-controller="Rollos" asp-action="Index">
+            <i class="bi bi-recycle"></i> Rollos
+        </a>
+
+        <span class="sidebar-section-label">Sellado</span>
+        <a class="sidebar-item @(ViewData["ActivePage"]?.ToString() == "Planillas" ? "active" : "")"
+           asp-controller="Planillas" asp-action="Index">
+            <i class="bi bi-clipboard-check"></i> Planillas
+        </a>
+        <a class="sidebar-item @(ViewData["ActivePage"]?.ToString() == "Sellado" ? "active" : "")"
+           asp-controller="Sellado" asp-action="Index">
+            <i class="bi bi-tools"></i> Registro Sellado
+        </a>
+        <a class="sidebar-item @(ViewData["ActivePage"]?.ToString() == "Reportes" ? "active" : "")"
+           asp-controller="Reportes" asp-action="Index">
+            <i class="bi bi-bar-chart-line"></i> Reportes
+        </a>
+
+        <span class="sidebar-section-label">Sistema</span>
+        <a class="sidebar-item @(ViewData["ActivePage"]?.ToString() == "Usuarios" ? "active" : "")"
+           asp-controller="Usuarios" asp-action="Index">
+            <i class="bi bi-person-gear"></i> Usuarios
+        </a>
+    </aside>
+
+    <!-- CONTENIDO PRINCIPAL -->
+    <main class="main-content">
+
+        <!-- Alertas globales desde TempData -->
+        @if (TempData["Success"] != null)
+        {
+            <div class="alert-custom alert-success">
+                <i class="bi bi-check-circle-fill"></i>
+                @TempData["Success"]
+            </div>
+        }
+        @if (TempData["Error"] != null)
+        {
+            <div class="alert-custom alert-error">
+                <i class="bi bi-x-circle-fill"></i>
+                @TempData["Error"]
+            </div>
+        }
+
+        @RenderBody()
+    </main>
+
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>

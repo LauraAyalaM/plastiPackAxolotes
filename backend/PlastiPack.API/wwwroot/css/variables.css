@@ -1,0 +1,53 @@
+/* =============================================
+   PLASTIPACK - VARIABLES GLOBALES DE DISEÑO
+   Todos los módulos deben importar este archivo
+   ============================================= */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+:root {
+  /* Colores principales */
+  --color-primary:       #2563EB;
+  --color-primary-dark:  #1D4ED8;
+  --color-accent:        #0EA5E9;
+  --color-success:       #10B981;
+  --color-warning:       #F59E0B;
+  --color-danger:        #EF4444;
+
+  /* Neutros */
+  --color-dark:          #1E293B;
+  --color-mid:           #64748B;
+  --color-light:         #F1F5F9;
+  --color-white:         #FFFFFF;
+  --color-border:        #E2E8F0;
+  --color-surface:       #F8FAFC;
+
+  /* Badges */
+  --badge-success-bg:    #D1FAE5;
+  --badge-success-text:  #065F46;
+  --badge-warning-bg:    #FEF3C7;
+  --badge-warning-text:  #92400E;
+  --badge-info-bg:       #DBEAFE;
+  --badge-info-text:     #1E40AF;
+  --badge-danger-bg:     #FEE2E2;
+  --badge-danger-text:   #991B1B;
+
+  /* Tipografía */
+  --font-family:         'Inter', sans-serif;
+  --font-size-xs:        11px;
+  --font-size-sm:        13px;
+  --font-size-base:      14px;
+  --font-size-md:        18px;
+  --font-size-lg:        24px;
+
+  /* Espaciado */
+  --sidebar-width:       240px;
+  --content-padding:     32px;
+  --card-radius:         12px;
+  --btn-radius:          8px;
+  --input-radius:        8px;
+
+  /* Sombras */
+  --shadow-card:         0 1px 3px rgba(0,0,0,0.08);
+  --shadow-dropdown:     0 4px 16px rgba(0,0,0,0.12);
+}

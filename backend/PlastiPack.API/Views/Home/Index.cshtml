@@ -1,8 +1,19 @@
-﻿@{
-    ViewData["Title"] = "Home Page";
+@{
+    ViewData["Title"] = "Dashboard";
+    ViewData["ActivePage"] = "Dashboard";
 }
 
-<div class="text-center">
-    <h1 class="display-4">Welcome</h1>
-    <p>Learn about <a href="https://learn.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
+<div class="page-header">
+    <div class="page-header-left">
+        <p class="breadcrumb-custom">Inicio</p>
+        <h1>Dashboard</h1>
+        <p>Bienvenido al sistema de gestión PlastiPack</p>
+    </div>
+</div>
+
+<div class="card-custom">
+    <p class="card-custom-title">Estado del sistema</p>
+    <p style="color: var(--color-mid); font-size: var(--font-size-sm);">
+        El sistema está funcionando correctamente. Usa el menú lateral para navegar.
+    </p>
 </div>
