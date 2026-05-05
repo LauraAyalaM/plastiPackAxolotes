@@ -1,0 +1,133 @@
+@model PlastiPack.API.Models.OrdenProduccion
+@{
+    ViewData["Title"] = $"Orden #{Model.Id}";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+
+    string BadgeOrden(string e) => e switch {
+        "pendiente"  => "badge-warning",
+        "en_proceso" => "badge-info",
+        "completada" => "badge-success",
+        "cancelada"  => "badge-danger",
+        _            => "badge-warning"
+    };
+    string BadgeProceso(string e) => e switch {
+        "pendiente"  => "badge-warning",
+        "en_proceso" => "badge-info",
+        "completado" => "badge-success",
+        "omitido"    => "badge-danger",
+        _            => "badge-warning"
+    };
+    string IconoProceso(string p) => p switch {
+        "extrusion"  => "bi-moisture",
+        "impresion"  => "bi-printer",
+        "refilado"   => "bi-scissors",
+        "sellado"    => "bi-wrench",
+        _            => "bi-gear"
+    };
+}
+
+<div class="page-header">
+    <div class="page-header-left">
+        <div class="breadcrumb-custom">
+            <a asp-controller="Home" asp-action="Index">Inicio</a> /
+            <a asp-action="Index">Órdenes</a> / Orden #@Model.Id
+        </div>
+        <h1>Orden de Producción #@Model.Id</h1>
+        <p>Pedido #@Model.PedidoId — @(Model.Referencia?.Codigo ?? "—")</p>
+    </div>
+    <span class="@BadgeOrden(Model.Estado)" style="font-size:14px;padding:6px 16px;">
+        @Model.Estado
+    </span>
+</div>
+
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;">
+
+    <div class="card-custom">
+        <div class="card-custom-title"><i class="bi bi-info-circle"></i> Información general</div>
+        <table class="table-custom">
+            <tr><td style="color:var(--color-mid);width:40%">Pedido</td><td>
+                <a asp-controller="Pedidos" asp-action="Detalle" asp-route-id="@Model.PedidoId">
+                    #@Model.PedidoId — @(Model.Pedido?.Cliente?.Nombre ?? "Interno")
+                </a>
+            </td></tr>
+            <tr><td style="color:var(--color-mid)">Referencia</td><td>@(Model.Referencia?.Codigo) — @(Model.Referencia?.Nombre)</td></tr>
+            <tr><td style="color:var(--color-mid)">Cantidad requerida</td><td><strong>@Model.CantidadRequerida</strong></td></tr>
+            <tr><td style="color:var(--color-mid)">Creada por</td><td>@(Model.UsuarioCreador?.Nombre ?? "—")</td></tr>
+            <tr><td style="color:var(--color-mid)">Fecha creación</td><td>@Model.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</td></tr>
+        </table>
+    </div>
+
+    <div class="card-custom">
+        <div class="card-custom-title"><i class="bi bi-diagram-3"></i> Secuencia de procesos</div>
+
+        @if (!Model.Procesos.Any())
+        {
+            <p style="color:var(--color-mid);text-align:center;padding:24px;">Sin procesos registrados.</p>
+        }
+        else
+        {
+            @foreach (var proc in Model.Procesos.OrderBy(p => p.Secuencia))
+            {
+                <div style="display:flex;align-items:center;gap:16px;padding:14px 0;border-bottom:1px solid var(--color-border);">
+                    <div style="width:32px;height:32px;border-radius:50%;background:var(--color-surface);
+                                display:flex;align-items:center;justify-content:center;
+                                font-size:16px;flex-shrink:0;">
+                        <i class="bi @IconoProceso(proc.NombreProceso)"></i>
+                    </div>
+                    <div style="flex:1;">
+                        <div style="font-weight:600;text-transform:capitalize;">@proc.NombreProceso</div>
+                        <div style="font-size:12px;color:var(--color-mid);">
+                            @if (proc.FechaInicio.HasValue)
+                            { <span>Inicio: @proc.FechaInicio.Value.ToLocalTime().ToString("dd/MM HH:mm")</span> }
+                            @if (proc.FechaFin.HasValue)
+                            { <span> · Fin: @proc.FechaFin.Value.ToLocalTime().ToString("dd/MM HH:mm")</span> }
+                        </div>
+                    </div>
+                    <span class="@BadgeProceso(proc.Estado)">@proc.Estado</span>
+
+                    @if (User.IsInRole("jefe_produccion") || User.IsInRole("operario"))
+                    {
+                        <div style="display:flex;gap:6px;">
+                            @if (proc.Estado == "pendiente")
+                            {
+                                <form asp-action="AvanzarProceso" method="post" style="margin:0">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="ordenId"  value="@Model.Id" />
+                                    <input type="hidden" name="procesoId" value="@proc.Id" />
+                                    <input type="hidden" name="accion"   value="iniciar" />
+                                    <button type="submit" class="btn-primary-custom btn-sm-custom">
+                                        <i class="bi bi-play-fill"></i> Iniciar
+                                    </button>
+                                </form>
+                                @if (User.IsInRole("jefe_produccion"))
+                                {
+                                    <form asp-action="AvanzarProceso" method="post" style="margin:0">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="ordenId"  value="@Model.Id" />
+                                        <input type="hidden" name="procesoId" value="@proc.Id" />
+                                        <input type="hidden" name="accion"   value="omitir" />
+                                        <button type="submit" class="btn-secondary-custom btn-sm-custom">
+                                            <i class="bi bi-skip-forward"></i> Omitir
+                                        </button>
+                                    </form>
+                                }
+                            }
+                            @if (proc.Estado == "en_proceso")
+                            {
+                                <form asp-action="AvanzarProceso" method="post" style="margin:0">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="ordenId"  value="@Model.Id" />
+                                    <input type="hidden" name="procesoId" value="@proc.Id" />
+                                    <input type="hidden" name="accion"   value="completar" />
+                                    <button type="submit" class="btn-primary-custom btn-sm-custom">
+                                        <i class="bi bi-check-lg"></i> Completar
+                                    </button>
+                                </form>
+                            }
+                        </div>
+                    }
+                </div>
+            }
+        }
+    </div>
+</div>

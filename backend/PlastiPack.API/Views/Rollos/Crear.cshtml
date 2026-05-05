@@ -1,0 +1,88 @@
+@model PlastiPack.API.Models.Rollo
+@{
+    ViewData["Title"] = "Registrar Rollo";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="page-header">
+    <div class="page-header-left">
+        <div class="breadcrumb-custom">
+            <a asp-controller="Home" asp-action="Index">Inicio</a> /
+            <a asp-action="Index">Rollos</a> / Registrar
+        </div>
+        <h1>Registrar Nuevo Rollo</h1>
+    </div>
+</div>
+
+<div style="max-width:600px;">
+    <div class="card-custom">
+        <div class="card-custom-title"><i class="bi bi-recycle"></i> Datos del rollo</div>
+
+        @if (!ViewData.ModelState.IsValid)
+        {
+            <div class="alert-custom alert-error">
+                <i class="bi bi-x-circle-fill"></i>
+                @Html.ValidationSummary(false)
+            </div>
+        }
+
+        <form asp-action="Crear" method="post">
+            @Html.AntiForgeryToken()
+
+            <div class="form-grid-2" style="margin-bottom:16px;">
+                <div class="form-group">
+                    <label class="form-label-custom">Número de rollo *</label>
+                    <input asp-for="NumeroRollo" class="form-control-custom"
+                           placeholder="Ej: R-2026-001" required />
+                    <span asp-validation-for="NumeroRollo" style="color:var(--color-danger);font-size:12px;"></span>
+                </div>
+                <div class="form-group">
+                    <label class="form-label-custom">Referencia *</label>
+                    <select asp-for="ReferenciaId" class="form-control-custom" required>
+                        <option value="">— Selecciona —</option>
+                        @foreach (var r in (List<PlastiPack.API.Models.Referencia>)ViewBag.Referencias)
+                        {
+                            <option value="@r.Id">@r.Codigo — @r.Nombre</option>
+                        }
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-group" style="margin-bottom:16px;">
+                <label class="form-label-custom">Peso (kg)</label>
+                <input asp-for="PesoKg" type="number" step="0.001"
+                       class="form-control-custom" placeholder="Ej: 45.500" />
+            </div>
+
+            <div style="margin-bottom:16px;padding:16px;background:var(--color-surface);border-radius:8px;">
+                <label style="display:flex;align-items:center;gap:10px;cursor:pointer;margin-bottom:12px;">
+                    <input asp-for="TieneImpresion" id="chkImpresion" style="width:16px;height:16px;" />
+                    <span style="font-weight:500;">¿Tiene impresión?</span>
+                </label>
+                <div id="campoMarca" style="display:none;">
+                    <label class="form-label-custom">Marca impresa</label>
+                    <input asp-for="MarcaImpresa" class="form-control-custom"
+                           placeholder="Nombre de la marca" />
+                </div>
+            </div>
+
+            <div style="display:flex;gap:12px;">
+                <button type="submit" class="btn-primary-custom">
+                    <i class="bi bi-save"></i> Registrar
+                </button>
+                <a asp-action="Index" class="btn-secondary-custom">Cancelar</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+const chk = document.getElementById('chkImpresion');
+const campo = document.getElementById('campoMarca');
+chk.addEventListener('change', () => {
+    campo.style.display = chk.checked ? 'block' : 'none';
+});
+if (chk.checked) campo.style.display = 'block';
+</script>
+}

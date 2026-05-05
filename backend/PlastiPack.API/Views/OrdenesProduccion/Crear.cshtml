@@ -1,0 +1,176 @@
+@{
+    ViewData["Title"] = "Nueva Orden de Producción";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="page-header">
+    <div class="page-header-left">
+        <div class="breadcrumb-custom">
+            <a asp-controller="Home" asp-action="Index">Inicio</a> /
+            <a asp-action="Index">Órdenes</a> / Nueva
+        </div>
+        <h1>Nueva Orden de Producción</h1>
+        <p>Selecciona un pedido y configura la orden</p>
+    </div>
+</div>
+
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;align-items:start;">
+
+    <div class="card-custom">
+        <div class="card-custom-title"><i class="bi bi-gear"></i> Datos de la orden</div>
+        <form asp-action="Crear" method="post">
+            @Html.AntiForgeryToken()
+
+            <div class="form-group" style="margin-bottom:16px;">
+                <label class="form-label-custom">Pedido *</label>
+                <select name="pedidoId" id="selectPedido" class="form-control-custom" required>
+                    <option value="">— Selecciona un pedido —</option>
+                    @foreach (var p in (List<PlastiPack.API.Models.Pedido>)ViewBag.Pedidos)
+                    {
+                        <option value="@p.Id"
+                                selected="@(ViewBag.PedidoIdSeleccionado?.ToString() == p.Id.ToString())">
+                            #@p.Id — @(p.Cliente?.Nombre ?? "Interno") (@p.Estado)
+                        </option>
+                    }
+                </select>
+            </div>
+
+            <div class="form-group" style="margin-bottom:16px;">
+                <label class="form-label-custom">Ítem / Referencia *</label>
+                <select name="referenciaId" id="selectReferencia" class="form-control-custom" required>
+                    <option value="">— Primero selecciona un pedido —</option>
+                </select>
+            </div>
+
+            <div class="form-group" style="margin-bottom:16px;">
+                <label class="form-label-custom">Cantidad requerida *</label>
+                <input type="number" name="cantidadRequerida" id="inputCantidad"
+                       class="form-control-custom" min="1" required />
+            </div>
+
+            <div style="margin-bottom:16px;padding:16px;background:var(--color-surface);border-radius:8px;">
+                <p style="font-size:13px;font-weight:600;color:var(--color-mid);margin-bottom:12px;">
+                    PROCESOS ADICIONALES
+                </p>
+                <label style="display:flex;align-items:center;gap:10px;cursor:pointer;margin-bottom:8px;">
+                    <input type="checkbox" name="tieneImpresion" value="true" id="chkImpresion"
+                           style="width:16px;height:16px;" />
+                    <span><i class="bi bi-printer"></i> Impresión</span>
+                </label>
+                <label style="display:flex;align-items:center;gap:10px;cursor:pointer;">
+                    <input type="checkbox" name="tieneRefilado" value="true"
+                           style="width:16px;height:16px;" />
+                    <span><i class="bi bi-scissors"></i> Refilado</span>
+                </label>
+                <p style="font-size:12px;color:var(--color-mid);margin-top:10px;">
+                    Extrusión y Sellado siempre se incluyen.
+                </p>
+            </div>
+
+            <div style="display:flex;gap:12px;">
+                <button type="submit" class="btn-primary-custom">
+                    <i class="bi bi-plus-lg"></i> Crear Orden
+                </button>
+                <a asp-action="Index" class="btn-secondary-custom">Cancelar</a>
+            </div>
+        </form>
+    </div>
+
+    <div class="card-custom">
+        <div class="card-custom-title"><i class="bi bi-diagram-3"></i> Flujo de procesos</div>
+        <div id="flujoPreview" style="display:flex;flex-direction:column;gap:8px;">
+            <div class="proceso-step" style="display:flex;align-items:center;gap:12px;padding:12px;
+                         background:var(--color-surface);border-radius:8px;">
+                <i class="bi bi-moisture" style="font-size:20px;color:var(--color-primary);"></i>
+                <div>
+                    <div style="font-weight:600;">1. Extrusión</div>
+                    <div style="font-size:12px;color:var(--color-mid);">Siempre incluido</div>
+                </div>
+                <span class="badge-warning" style="margin-left:auto;">pendiente</span>
+            </div>
+
+            <div id="pasoImpresion" style="display:none;align-items:center;gap:12px;padding:12px;
+                         background:var(--color-surface);border-radius:8px;">
+                <i class="bi bi-printer" style="font-size:20px;color:var(--color-primary);"></i>
+                <div>
+                    <div style="font-weight:600;">Impresión</div>
+                    <div style="font-size:12px;color:var(--color-mid);">Opcional</div>
+                </div>
+                <span class="badge-warning" style="margin-left:auto;">pendiente</span>
+            </div>
+
+            <div id="pasoRefilado" style="display:none;align-items:center;gap:12px;padding:12px;
+                         background:var(--color-surface);border-radius:8px;">
+                <i class="bi bi-scissors" style="font-size:20px;color:var(--color-primary);"></i>
+                <div>
+                    <div style="font-weight:600;">Refilado</div>
+                    <div style="font-size:12px;color:var(--color-mid);">Opcional</div>
+                </div>
+                <span class="badge-warning" style="margin-left:auto;">pendiente</span>
+            </div>
+
+            <div style="display:flex;align-items:center;gap:12px;padding:12px;
+                         background:var(--color-surface);border-radius:8px;">
+                <i class="bi bi-wrench" style="font-size:20px;color:var(--color-primary);"></i>
+                <div>
+                    <div style="font-weight:600;">Sellado</div>
+                    <div style="font-size:12px;color:var(--color-mid);">Siempre incluido — último paso</div>
+                </div>
+                <span class="badge-warning" style="margin-left:auto;">pendiente</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+document.getElementById('selectPedido').addEventListener('change', async function() {
+    const pedidoId = this.value;
+    const sel = document.getElementById('selectReferencia');
+    const inputCantidad = document.getElementById('inputCantidad');
+    sel.innerHTML = '<option value="">Cargando…</option>';
+
+    if (!pedidoId) {
+        sel.innerHTML = '<option value="">— Primero selecciona un pedido —</option>';
+        return;
+    }
+
+    const resp = await fetch(`/OrdenesProduccion/ItemsPedido?pedidoId=${pedidoId}`);
+    const items = await resp.json();
+
+    if (items.length === 0) {
+        sel.innerHTML = '<option value="">Sin ítems disponibles</option>';
+        return;
+    }
+
+    sel.innerHTML = '<option value="">— Selecciona referencia —</option>';
+    items.forEach(item => {
+        const opt = document.createElement('option');
+        opt.value = item.referenciaId;
+        opt.textContent = `${item.codigo} — ${item.nombre || ''} (cant. pedido: ${item.cantidad})`;
+        opt.dataset.cantidad = item.cantidad;
+        opt.dataset.impresion = item.tieneImpresion;
+        sel.appendChild(opt);
+    });
+});
+
+document.getElementById('selectReferencia').addEventListener('change', function() {
+    const opt = this.options[this.selectedIndex];
+    if (opt && opt.dataset.cantidad) {
+        document.getElementById('inputCantidad').value = opt.dataset.cantidad;
+        if (opt.dataset.impresion === 'True' || opt.dataset.impresion === 'true') {
+            document.getElementById('chkImpresion').checked = true;
+            document.getElementById('pasoImpresion').style.display = 'flex';
+        }
+    }
+});
+
+document.getElementById('chkImpresion').addEventListener('change', function() {
+    document.getElementById('pasoImpresion').style.display = this.checked ? 'flex' : 'none';
+});
+
+document.querySelector('input[name="tieneRefilado"]').addEventListener('change', function() {
+    document.getElementById('pasoRefilado').style.display = this.checked ? 'flex' : 'none';
+});
+</script>
+}
