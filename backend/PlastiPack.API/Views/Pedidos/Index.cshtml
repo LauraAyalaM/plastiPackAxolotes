@@ -1,0 +1,139 @@
+@model IEnumerable<PlastiPack.API.Models.Pedido>
+@{
+    ViewData["Title"] = "Pedidos";
+    ViewData["ActivePage"] = "Pedidos";
+}
+
+<div class="page-header">
+    <div class="page-header-left">
+        <h1>Pedidos</h1>
+        <p>@ViewBag.Total pedido(s)</p>
+    </div>
+    <div class="page-header-right">
+        @if (User.IsInRole("vendedor") || User.IsInRole("jefe_produccion"))
+        {
+            <a asp-action="Crear" class="btn-primary-custom">
+                <i class="bi bi-plus-lg"></i> Nuevo Pedido
+            </a>
+        }
+    </div>
+</div>
+
+<!-- Filtros -->
+<div class="card-custom" style="margin-bottom:16px">
+    <form method="get" style="display:flex; gap:12px; flex-wrap:wrap; align-items:flex-end">
+        <div class="form-group" style="flex:1; min-width:200px; margin:0">
+            <label class="form-label-custom">Buscar</label>
+            <input name="busqueda" value="@ViewBag.Busqueda" class="form-control-custom"
+                   placeholder="# pedido o cliente..." />
+        </div>
+        <div class="form-group" style="min-width:150px; margin:0">
+            <label class="form-label-custom">Estado</label>
+            <select name="estado" class="form-control-custom">
+                <option value="">Todos</option>
+                <option value="pendiente"      selected="@(ViewBag.Estado == "pendiente")">Pendiente</option>
+                <option value="en_produccion"  selected="@(ViewBag.Estado == "en_produccion")">En Producción</option>
+                <option value="completado"     selected="@(ViewBag.Estado == "completado")">Completado</option>
+                <option value="entregado"      selected="@(ViewBag.Estado == "entregado")">Entregado</option>
+                <option value="cancelado"      selected="@(ViewBag.Estado == "cancelado")">Cancelado</option>
+            </select>
+        </div>
+        <div class="form-group" style="min-width:140px; margin:0">
+            <label class="form-label-custom">Destino</label>
+            <select name="destino" class="form-control-custom">
+                <option value="">Todos</option>
+                <option value="externo" selected="@(ViewBag.Destino == "externo")">Externo</option>
+                <option value="interno" selected="@(ViewBag.Destino == "interno")">Interno</option>
+            </select>
+        </div>
+        <button type="submit" class="btn-primary-custom">
+            <i class="bi bi-search"></i> Filtrar
+        </button>
+        @if (!string.IsNullOrEmpty(ViewBag.Busqueda as string) ||
+             !string.IsNullOrEmpty(ViewBag.Estado as string) ||
+             !string.IsNullOrEmpty(ViewBag.Destino as string))
+        {
+            <a asp-action="Index" class="btn-secondary-custom">
+                <i class="bi bi-x-lg"></i> Limpiar
+            </a>
+        }
+    </form>
+</div>
+
+<!-- Tabla -->
+<div class="card-custom">
+    @if (!Model.Any())
+    {
+        <div style="text-align:center; padding:40px; color:var(--color-mid)">
+            <i class="bi bi-cart3" style="font-size:32px; display:block; margin-bottom:8px"></i>
+            No se encontraron pedidos.
+        </div>
+    }
+    else
+    {
+        <table class="table-custom">
+            <thead>
+                <tr>
+                    <th># Pedido</th>
+                    <th>Cliente</th>
+                    <th>Vendedor</th>
+                    <th>Destino</th>
+                    <th>F. Entrega</th>
+                    <th>Estado</th>
+                    <th style="text-align:right">Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var p in Model)
+                {
+                    <tr>
+                        <td><strong>#@p.Id</strong></td>
+                        <td>@(p.Cliente?.Nombre ?? "— Interno —")</td>
+                        <td>@(p.Vendedor?.Nombre ?? "—")</td>
+                        <td>
+                            <span class="badge-custom @(p.Destino == "interno" ? "badge-info" : "badge-neutral")">
+                                @p.Destino
+                            </span>
+                        </td>
+                        <td>@p.FechaEntrega.ToString("dd/MM/yyyy")</td>
+                        <td>
+                            @{
+                                var badgeClass = p.Estado switch {
+                                    "pendiente"     => "badge-warning",
+                                    "en_produccion" => "badge-info",
+                                    "completado"    => "badge-success",
+                                    "entregado"     => "badge-success",
+                                    "cancelado"     => "badge-danger",
+                                    _               => "badge-neutral"
+                                };
+                            }
+                            <span class="badge-custom @badgeClass">@p.Estado</span>
+                        </td>
+                        <td style="text-align:right">
+                            <a asp-action="Detalle" asp-route-id="@p.Id"
+                               class="btn-icon-custom" title="Ver detalle">
+                                <i class="bi bi-eye"></i>
+                            </a>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+
+        <!-- Paginación -->
+        @if (ViewBag.TotalPaginas > 1)
+        {
+            <div class="pagination-custom">
+                @for (int i = 1; i <= ViewBag.TotalPaginas; i++)
+                {
+                    <a asp-action="Index"
+                       asp-route-busqueda="@ViewBag.Busqueda"
+                       asp-route-estado="@ViewBag.Estado"
+                       asp-route-destino="@ViewBag.Destino"
+                       asp-route-pagina="@i"
+                       class="page-item-custom @(i == ViewBag.PaginaActual ? "active" : "")">@i</a>
+                }
+            </div>
+        }
+    }
+</div>

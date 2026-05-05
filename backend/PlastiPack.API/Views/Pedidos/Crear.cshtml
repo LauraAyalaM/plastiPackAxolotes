@@ -1,0 +1,385 @@
+@model PlastiPack.API.Models.Pedido
+@{
+    ViewData["Title"] = "Nuevo Pedido";
+    ViewData["ActivePage"] = "Pedidos";
+    var fechaMin = DateTime.Today.AddDays(15).ToString("yyyy-MM-dd");
+}
+
+<div class="page-header">
+    <div class="page-header-left">
+        <p class="breadcrumb-custom">
+            <a asp-action="Index">Pedidos</a> / Nuevo
+        </p>
+        <h1>Nuevo Pedido</h1>
+        <p>Complete los campos y agregue los ítems del pedido</p>
+    </div>
+</div>
+
+<form asp-action="Crear" method="post" id="form-pedido">
+    @Html.AntiForgeryToken()
+
+    <!-- Errores globales -->
+    @if (!ViewData.ModelState.IsValid)
+    {
+        <div class="alert-custom alert-error" style="margin-bottom:16px">
+            <i class="bi bi-x-circle-fill"></i>
+            <div>
+                @foreach (var error in ViewData.ModelState.Values.SelectMany(v => v.Errors))
+                {
+                    <div>@error.ErrorMessage</div>
+                }
+            </div>
+        </div>
+    }
+
+    <!-- Encabezado del pedido -->
+    <div class="card-custom">
+        <p class="card-custom-title"><i class="bi bi-file-earmark-text"></i> Encabezado del Pedido</p>
+        <div class="form-grid-3">
+
+            <!-- Destino -->
+            <div class="form-group">
+                <label class="form-label-custom">Destino *</label>
+                <select asp-for="Destino" class="form-control-custom" id="sel-destino" required>
+                    <option value="externo">Externo</option>
+                    <option value="interno">Interno</option>
+                </select>
+                <span asp-validation-for="Destino" style="color:var(--color-danger); font-size:12px"></span>
+            </div>
+
+            <!-- Cliente (solo destino externo) -->
+            <div class="form-group" id="bloque-cliente" style="grid-column: span 2">
+                <label class="form-label-custom">Cliente *</label>
+                <select asp-for="ClienteId" class="form-control-custom" id="sel-cliente">
+                    <option value="">— Seleccionar cliente —</option>
+                    @foreach (var c in ViewBag.Clientes as List<PlastiPack.API.Models.Cliente> ?? new())
+                    {
+                        <option value="@c.Id" data-tipo="@c.Tipo">@c.Nombre @(c.Nit != null ? $"({c.Nit})" : "")</option>
+                    }
+                </select>
+                <span asp-validation-for="ClienteId" style="color:var(--color-danger); font-size:12px"></span>
+            </div>
+
+            <!-- Fecha entrega -->
+            <div class="form-group">
+                <label class="form-label-custom">Fecha de Entrega * <small style="color:var(--color-mid)">(mín. 15 días)</small></label>
+                <input asp-for="FechaEntrega" type="date" class="form-control-custom"
+                       min="@fechaMin" required/>
+                <span asp-validation-for="FechaEntrega" style="color:var(--color-danger); font-size:12px"></span>
+            </div>
+
+            <!-- Observaciones -->
+            <div class="form-group" style="grid-column: span 3">
+                <label class="form-label-custom">Observaciones</label>
+                <textarea asp-for="Observaciones" class="form-control-custom"
+                          rows="2" placeholder="Indicaciones especiales, embalaje, transporte..."></textarea>
+            </div>
+        </div>
+    </div>
+
+    <!-- Ítems del pedido -->
+    <div class="card-custom">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px">
+            <p class="card-custom-title" style="margin:0"><i class="bi bi-list-check"></i> Ítems del Pedido</p>
+            <button type="button" class="btn-primary-custom" id="btn-agregar-item">
+                <i class="bi bi-plus-lg"></i> Agregar Ítem
+            </button>
+        </div>
+
+        <!-- Buscador de referencia (oculto, se activa al agregar ítem) -->
+        <div id="buscador-ref" style="display:none; background:var(--color-light); border:1px solid var(--color-border); border-radius:8px; padding:16px; margin-bottom:16px">
+            <div style="display:flex; gap:12px; align-items:flex-end">
+                <div class="form-group" style="flex:1; margin:0">
+                    <label class="form-label-custom">Buscar Referencia</label>
+                    <input type="text" id="input-buscar-ref" class="form-control-custom"
+                           placeholder="Código o nombre de referencia..."/>
+                </div>
+                <button type="button" class="btn-secondary-custom" id="btn-cancelar-busqueda">
+                    <i class="bi bi-x-lg"></i> Cancelar
+                </button>
+            </div>
+            <div id="resultados-ref" style="margin-top:8px"></div>
+        </div>
+
+        <!-- Tabla de ítems -->
+        <div id="tabla-items-wrapper">
+            <table class="table-custom" id="tabla-items">
+                <thead>
+                    <tr>
+                        <th>Referencia</th>
+                        <th style="width:120px; text-align:center">Stock</th>
+                        <th style="width:120px">Cantidad</th>
+                        <th style="width:140px">Precio Unit.</th>
+                        <th style="width:130px; text-align:right">Subtotal</th>
+                        <th style="width:50px"></th>
+                    </tr>
+                </thead>
+                <tbody id="tbody-items">
+                    <tr id="fila-vacia">
+                        <td colspan="6" style="text-align:center; color:var(--color-mid); padding:24px">
+                            <i class="bi bi-cart-plus" style="font-size:24px; display:block; margin-bottom:6px"></i>
+                            Haga clic en "Agregar Ítem" para buscar referencias
+                        </td>
+                    </tr>
+                </tbody>
+                <tfoot>
+                    <tr>
+                        <td colspan="4" style="text-align:right; font-weight:600; padding:12px 8px">Total:</td>
+                        <td style="text-align:right; font-weight:700; font-size:16px; color:var(--color-primary)" id="total-pedido">$0</td>
+                        <td></td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+
+    <div style="display:flex; gap:12px; justify-content:flex-end; margin-bottom:32px">
+        <a asp-action="Index" class="btn-secondary-custom">
+            <i class="bi bi-x-lg"></i> Cancelar
+        </a>
+        <button type="submit" class="btn-primary-custom" id="btn-guardar">
+            <i class="bi bi-check-lg"></i> Crear Pedido
+        </button>
+    </div>
+</form>
+
+@section Scripts {
+<script>
+(function () {
+    // ── Estado ──
+    let items = [];   // [{referenciaId, codigo, nombre, stock, cantidad, precio}]
+    let debounceTimer = null;
+
+    // ── DOM refs ──
+    const selDestino      = document.getElementById('sel-destino');
+    const bloqueCliente   = document.getElementById('bloque-cliente');
+    const selCliente      = document.getElementById('sel-cliente');
+    const btnAgregar      = document.getElementById('btn-agregar-item');
+    const buscadorRef     = document.getElementById('buscador-ref');
+    const inputBuscar     = document.getElementById('input-buscar-ref');
+    const resultadosRef   = document.getElementById('resultados-ref');
+    const btnCancelar     = document.getElementById('btn-cancelar-busqueda');
+    const tbodyItems      = document.getElementById('tbody-items');
+    const filaVacia       = document.getElementById('fila-vacia');
+    const totalEl         = document.getElementById('total-pedido');
+    const formPedido      = document.getElementById('form-pedido');
+
+    // ── Destino: ocultar cliente si interno ──
+    function toggleCliente() {
+        const esExterno = selDestino.value === 'externo';
+        bloqueCliente.style.display = esExterno ? '' : 'none';
+        selCliente.required = esExterno;
+        if (!esExterno) selCliente.value = '';
+        // Actualizar precios si hay ítems
+        items.forEach((_, i) => actualizarPrecio(i));
+    }
+    selDestino.addEventListener('change', toggleCliente);
+    selCliente.addEventListener('change', () => items.forEach((_, i) => actualizarPrecio(i)));
+    toggleCliente();
+
+    // ── Abrir buscador ──
+    btnAgregar.addEventListener('click', () => {
+        buscadorRef.style.display = '';
+        inputBuscar.value = '';
+        resultadosRef.innerHTML = '';
+        inputBuscar.focus();
+    });
+
+    btnCancelar.addEventListener('click', () => {
+        buscadorRef.style.display = 'none';
+    });
+
+    // ── Búsqueda con debounce ──
+    inputBuscar.addEventListener('input', () => {
+        clearTimeout(debounceTimer);
+        const q = inputBuscar.value.trim();
+        if (q.length < 2) { resultadosRef.innerHTML = ''; return; }
+        debounceTimer = setTimeout(() => buscarReferencias(q), 300);
+    });
+
+    async function buscarReferencias(q) {
+        resultadosRef.innerHTML = '<p style="color:var(--color-mid); font-size:13px; padding:4px">Buscando...</p>';
+        try {
+            const res  = await fetch(`/Referencias/Buscar?q=${encodeURIComponent(q)}`);
+            const data = await res.json();
+
+            if (!data.length) {
+                resultadosRef.innerHTML = '<p style="color:var(--color-mid); font-size:13px; padding:4px">Sin resultados.</p>';
+                return;
+            }
+
+            const html = data.map(r => `
+                <div class="ref-result-item" data-id="${r.id}" data-codigo="${r.codigo}"
+                     data-nombre="${r.nombre ?? ''}" data-stock="${r.stock}"
+                     style="padding:8px 12px; cursor:pointer; border-radius:6px; font-size:13px;
+                            border:1px solid var(--color-border); margin-bottom:4px; background:var(--color-white);
+                            display:flex; justify-content:space-between; align-items:center">
+                    <span><strong>${r.codigo}</strong> — ${r.nombre ?? ''}</span>
+                    <span style="color:${r.stock > 0 ? 'var(--color-success)' : 'var(--color-danger)'}; font-size:12px">
+                        Stock: ${r.stock}
+                    </span>
+                </div>`).join('');
+            resultadosRef.innerHTML = html;
+
+            resultadosRef.querySelectorAll('.ref-result-item').forEach(el => {
+                el.addEventListener('mouseenter', () => el.style.background = 'var(--color-light)');
+                el.addEventListener('mouseleave', () => el.style.background = 'var(--color-white)');
+                el.addEventListener('click', () => seleccionarReferencia(
+                    parseInt(el.dataset.id),
+                    el.dataset.codigo,
+                    el.dataset.nombre,
+                    parseInt(el.dataset.stock)
+                ));
+            });
+        } catch { resultadosRef.innerHTML = '<p style="color:var(--color-danger); font-size:13px">Error al buscar.</p>'; }
+    }
+
+    async function seleccionarReferencia(id, codigo, nombre, stock) {
+        // Evitar duplicados
+        if (items.find(i => i.referenciaId === id)) {
+            alert('Esa referencia ya está en el pedido.');
+            return;
+        }
+
+        // Obtener precio sugerido
+        const clienteId = selCliente.value || '';
+        let precio = 0;
+        try {
+            const res  = await fetch(`/Pedidos/PrecioSugerido?referenciaId=${id}&clienteId=${clienteId}`);
+            const data = await res.json();
+            precio = data.precio ?? 0;
+            stock  = data.stock  ?? stock;
+        } catch {}
+
+        items.push({ referenciaId: id, codigo, nombre, stock, cantidad: 1, precio });
+        buscadorRef.style.display = 'none';
+        renderTabla();
+    }
+
+    async function actualizarPrecio(idx) {
+        const item      = items[idx];
+        const clienteId = selCliente.value || '';
+        try {
+            const res  = await fetch(`/Pedidos/PrecioSugerido?referenciaId=${item.referenciaId}&clienteId=${clienteId}`);
+            const data = await res.json();
+            item.precio = data.precio ?? item.precio;
+            item.stock  = data.stock  ?? item.stock;
+            renderTabla();
+        } catch {}
+    }
+
+    // ── Render tabla ──
+    function renderTabla() {
+        if (!items.length) {
+            filaVacia.style.display = '';
+            // Limpiar filas de datos
+            tbodyItems.querySelectorAll('tr.item-row').forEach(r => r.remove());
+            totalEl.textContent = '$0';
+            sincronizarInputsOcultos();
+            return;
+        }
+        filaVacia.style.display = 'none';
+        tbodyItems.querySelectorAll('tr.item-row').forEach(r => r.remove());
+
+        let total = 0;
+        items.forEach((item, idx) => {
+            const subtotal = item.cantidad * item.precio;
+            total += subtotal;
+            const fila = document.createElement('tr');
+            fila.className = 'item-row';
+            fila.innerHTML = `
+                <td>
+                    <strong style="display:block">${item.codigo}</strong>
+                    <small style="color:var(--color-mid)">${item.nombre}</small>
+                </td>
+                <td style="text-align:center">
+                    <span style="color:${item.stock > 0 ? 'var(--color-success)' : 'var(--color-danger)'}; font-weight:600">
+                        ${item.stock}
+                    </span>
+                </td>
+                <td>
+                    <input type="number" min="1" max="${item.stock}" value="${item.cantidad}"
+                           class="form-control-custom input-cantidad" data-idx="${idx}"
+                           style="width:90px"/>
+                </td>
+                <td>
+                    <div style="position:relative">
+                        <span style="position:absolute; left:10px; top:50%; transform:translateY(-50%); color:var(--color-mid)">$</span>
+                        <input type="number" min="0" step="0.01" value="${item.precio.toFixed(2)}"
+                               class="form-control-custom input-precio" data-idx="${idx}"
+                               style="padding-left:22px; width:110px"/>
+                    </div>
+                </td>
+                <td style="text-align:right; font-weight:600">
+                    $${subtotal.toLocaleString('es-CO', {minimumFractionDigits:2, maximumFractionDigits:2})}
+                </td>
+                <td>
+                    <button type="button" class="btn-icon-custom btn-icon-danger btn-eliminar" data-idx="${idx}" title="Eliminar">
+                        <i class="bi bi-trash3"></i>
+                    </button>
+                </td>`;
+            tbodyItems.appendChild(fila);
+        });
+
+        totalEl.textContent = '$' + total.toLocaleString('es-CO', {minimumFractionDigits:2, maximumFractionDigits:2});
+
+        // Eventos de fila
+        tbodyItems.querySelectorAll('.input-cantidad').forEach(inp => {
+            inp.addEventListener('change', () => {
+                const idx = parseInt(inp.dataset.idx);
+                items[idx].cantidad = Math.max(1, parseInt(inp.value) || 1);
+                renderTabla();
+            });
+        });
+        tbodyItems.querySelectorAll('.input-precio').forEach(inp => {
+            inp.addEventListener('change', () => {
+                const idx = parseInt(inp.dataset.idx);
+                items[idx].precio = Math.max(0, parseFloat(inp.value) || 0);
+                renderTabla();
+            });
+        });
+        tbodyItems.querySelectorAll('.btn-eliminar').forEach(btn => {
+            btn.addEventListener('click', () => {
+                items.splice(parseInt(btn.dataset.idx), 1);
+                renderTabla();
+            });
+        });
+
+        sincronizarInputsOcultos();
+    }
+
+    // ── Sincronizar inputs ocultos para el POST ──
+    function sincronizarInputsOcultos() {
+        formPedido.querySelectorAll('.hidden-item').forEach(el => el.remove());
+        items.forEach((item, idx) => {
+            const mkInput = (name, value) => {
+                const el = document.createElement('input');
+                el.type  = 'hidden';
+                el.name  = name;
+                el.value = value;
+                el.className = 'hidden-item';
+                formPedido.appendChild(el);
+            };
+            mkInput(`referenciaIds[${idx}]`, item.referenciaId);
+            mkInput(`cantidades[${idx}]`,    item.cantidad);
+            mkInput(`precios[${idx}]`,       item.precio.toFixed(2));
+        });
+    }
+
+    // ── Validar antes de enviar ──
+    formPedido.addEventListener('submit', e => {
+        if (!items.length) {
+            e.preventDefault();
+            alert('Debe agregar al menos un ítem al pedido.');
+            return;
+        }
+        const stockErrors = items.filter(i => i.cantidad > i.stock);
+        if (stockErrors.length) {
+            e.preventDefault();
+            alert('Stock insuficiente para: ' + stockErrors.map(i => i.codigo).join(', '));
+        }
+    });
+
+})();
+</script>
+}

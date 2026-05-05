@@ -1,0 +1,131 @@
+@model IEnumerable<PlastiPack.API.Models.Cliente>
+@{
+    ViewData["Title"] = "Clientes";
+    ViewData["ActivePage"] = "Clientes";
+}
+
+<div class="page-header">
+    <div class="page-header-left">
+        <h1>Clientes</h1>
+        <p>@ViewBag.Total cliente(s) registrados</p>
+    </div>
+    <div class="page-header-right">
+        @if (User.IsInRole("vendedor") || User.IsInRole("jefe_produccion"))
+        {
+            <a asp-action="Crear" class="btn-primary-custom">
+                <i class="bi bi-plus-lg"></i> Nuevo Cliente
+            </a>
+        }
+    </div>
+</div>
+
+<!-- Filtros -->
+<div class="card-custom" style="margin-bottom:16px">
+    <form method="get" style="display:flex; gap:12px; flex-wrap:wrap; align-items:flex-end">
+        <div class="form-group" style="flex:1; min-width:220px; margin:0">
+            <label class="form-label-custom">Buscar</label>
+            <input name="busqueda" value="@ViewBag.Busqueda" class="form-control-custom"
+                   placeholder="Nombre o NIT..." />
+        </div>
+        <div class="form-group" style="min-width:160px; margin:0">
+            <label class="form-label-custom">Tipo</label>
+            <select name="tipo" class="form-control-custom">
+                <option value="">Todos</option>
+                <option value="externo" selected="@(ViewBag.Tipo == "externo")">Externo</option>
+                <option value="interno" selected="@(ViewBag.Tipo == "interno")">Interno</option>
+            </select>
+        </div>
+        <button type="submit" class="btn-primary-custom">
+            <i class="bi bi-search"></i> Filtrar
+        </button>
+        @if (!string.IsNullOrEmpty(ViewBag.Busqueda as string) || !string.IsNullOrEmpty(ViewBag.Tipo as string))
+        {
+            <a asp-action="Index" class="btn-secondary-custom">
+                <i class="bi bi-x-lg"></i> Limpiar
+            </a>
+        }
+    </form>
+</div>
+
+<!-- Tabla -->
+<div class="card-custom">
+    @if (!Model.Any())
+    {
+        <div style="text-align:center; padding:40px; color:var(--color-mid)">
+            <i class="bi bi-people" style="font-size:32px; display:block; margin-bottom:8px"></i>
+            No se encontraron clientes.
+        </div>
+    }
+    else
+    {
+        <table class="table-custom">
+            <thead>
+                <tr>
+                    <th>Nombre</th>
+                    <th>NIT</th>
+                    <th>Teléfono</th>
+                    <th>Email</th>
+                    <th>Tipo</th>
+                    <th>Estado</th>
+                    <th style="text-align:right">Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var c in Model)
+                {
+                    <tr>
+                        <td><strong>@c.Nombre</strong></td>
+                        <td>@(c.Nit ?? "—")</td>
+                        <td>@(c.Telefono ?? "—")</td>
+                        <td>@(c.Email ?? "—")</td>
+                        <td>
+                            <span class="badge-custom @(c.Tipo == "interno" ? "badge-info" : "badge-neutral")">
+                                @c.Tipo
+                            </span>
+                        </td>
+                        <td>
+                            <span class="badge-custom @(c.Activo ? "badge-success" : "badge-danger")">
+                                @(c.Activo ? "Activo" : "Inactivo")
+                            </span>
+                        </td>
+                        <td style="text-align:right">
+                            <div style="display:flex; gap:8px; justify-content:flex-end">
+                                @if (User.IsInRole("vendedor") || User.IsInRole("jefe_produccion"))
+                                {
+                                    <a asp-action="Editar" asp-route-id="@c.Id"
+                                       class="btn-icon-custom" title="Editar">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
+                                    <form asp-action="CambiarEstado" asp-route-id="@c.Id"
+                                          method="post" style="display:inline">
+                                        @Html.AntiForgeryToken()
+                                        <button type="submit"
+                                                class="btn-icon-custom @(c.Activo ? "btn-icon-danger" : "btn-icon-success")"
+                                                title="@(c.Activo ? "Desactivar" : "Activar")">
+                                            <i class="bi @(c.Activo ? "bi-toggle-on" : "bi-toggle-off")"></i>
+                                        </button>
+                                    </form>
+                                }
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+
+        <!-- Paginación -->
+        @if (ViewBag.TotalPaginas > 1)
+        {
+            <div class="pagination-custom">
+                @for (int i = 1; i <= ViewBag.TotalPaginas; i++)
+                {
+                    <a asp-action="Index"
+                       asp-route-busqueda="@ViewBag.Busqueda"
+                       asp-route-tipo="@ViewBag.Tipo"
+                       asp-route-pagina="@i"
+                       class="page-item-custom @(i == ViewBag.PaginaActual ? "active" : "")">@i</a>
+                }
+            </div>
+        }
+    }
+</div>

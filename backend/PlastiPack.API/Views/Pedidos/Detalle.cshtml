@@ -1,0 +1,272 @@
+@model PlastiPack.API.Models.Pedido
+@{
+    ViewData["Title"] = $"Pedido #{Model.Id}";
+    ViewData["ActivePage"] = "Pedidos";
+
+    var esVendedor        = User.IsInRole("vendedor");
+    var esJefeProduccion  = User.IsInRole("jefe_produccion");
+
+    // Transiciones permitidas por rol
+    var transiciones = new List<(string Label, string Estado, string Css)>();
+
+    if (esJefeProduccion)
+    {
+        if (Model.Estado == "pendiente")
+        {
+            transiciones.Add(("Iniciar Producción", "en_produccion", "btn-primary-custom"));
+            transiciones.Add(("Cancelar",           "cancelado",     "btn-danger-custom"));
+        }
+        if (Model.Estado == "en_produccion")
+            transiciones.Add(("Marcar Completado", "completado", "btn-success-custom"));
+        if (Model.Estado == "completado")
+            transiciones.Add(("Marcar Entregado", "entregado", "btn-success-custom"));
+    }
+
+    if (esVendedor && Model.Estado == "pendiente")
+        transiciones.Add(("Cancelar", "cancelado", "btn-danger-custom"));
+
+    decimal total = Model.Detalles.Sum(d => d.Cantidad * d.Precio);
+}
+
+<div class="page-header">
+    <div class="page-header-left">
+        <p class="breadcrumb-custom">
+            <a asp-action="Index">Pedidos</a> / #@Model.Id
+        </p>
+        <h1>Pedido #@Model.Id</h1>
+        <p>Creado el @Model.FechaCreacion.ToString("dd/MM/yyyy")</p>
+    </div>
+    <div class="page-header-right" style="display:flex; gap:10px; flex-wrap:wrap">
+        @foreach (var t in transiciones)
+        {
+            <button type="button" class="@t.Css" onclick="confirmarCambio('@t.Estado', '@t.Label')">
+                @t.Label
+            </button>
+        }
+    </div>
+</div>
+
+<!-- Resumen / encabezado -->
+<div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:16px">
+
+    <!-- Info general -->
+    <div class="card-custom">
+        <p class="card-custom-title"><i class="bi bi-info-circle"></i> Información General</p>
+        <dl class="detail-list">
+            <dt>Estado</dt>
+            <dd>
+                @{
+                    var badgeClass = Model.Estado switch {
+                        "pendiente"     => "badge-warning",
+                        "en_produccion" => "badge-info",
+                        "completado"    => "badge-success",
+                        "entregado"     => "badge-success",
+                        "cancelado"     => "badge-danger",
+                        _               => "badge-neutral"
+                    };
+                }
+                <span class="badge-custom @badgeClass" style="font-size:13px">@Model.Estado</span>
+            </dd>
+            <dt>Destino</dt>
+            <dd>
+                <span class="badge-custom @(Model.Destino == "interno" ? "badge-info" : "badge-neutral")">
+                    @Model.Destino
+                </span>
+            </dd>
+            <dt>Fecha de Entrega</dt>
+            <dd>@Model.FechaEntrega.ToString("dd/MM/yyyy")</dd>
+            <dt>Vendedor</dt>
+            <dd>@(Model.Vendedor?.Nombre ?? "—")</dd>
+            @if (!string.IsNullOrWhiteSpace(Model.Observaciones))
+            {
+                <dt>Observaciones</dt>
+                <dd>@Model.Observaciones</dd>
+            }
+        </dl>
+    </div>
+
+    <!-- Cliente -->
+    <div class="card-custom">
+        <p class="card-custom-title"><i class="bi bi-person-vcard"></i> Cliente</p>
+        @if (Model.Cliente != null)
+        {
+            <dl class="detail-list">
+                <dt>Nombre</dt>   <dd><strong>@Model.Cliente.Nombre</strong></dd>
+                <dt>NIT</dt>      <dd>@(Model.Cliente.Nit ?? "—")</dd>
+                <dt>Teléfono</dt> <dd>@(Model.Cliente.Telefono ?? "—")</dd>
+                <dt>Email</dt>    <dd>@(Model.Cliente.Email ?? "—")</dd>
+                <dt>Dirección</dt><dd>@(Model.Cliente.Direccion ?? "—")</dd>
+            </dl>
+        }
+        else
+        {
+            <p style="color:var(--color-mid); font-size:14px; padding:12px 0">
+                <i class="bi bi-building"></i> Pedido interno — sin cliente externo
+            </p>
+        }
+    </div>
+</div>
+
+<!-- Ítems -->
+<div class="card-custom" style="margin-bottom:16px">
+    <p class="card-custom-title"><i class="bi bi-list-check"></i> Ítems del Pedido</p>
+    <table class="table-custom">
+        <thead>
+            <tr>
+                <th>Referencia</th>
+                <th style="text-align:center">Cantidad</th>
+                <th style="text-align:right">Precio Unit.</th>
+                <th style="text-align:right">Subtotal</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var d in Model.Detalles)
+            {
+                <tr>
+                    <td>
+                        <strong>@(d.Referencia?.Codigo ?? d.ReferenciaId.ToString())</strong>
+                        @if (!string.IsNullOrWhiteSpace(d.Referencia?.Nombre))
+                        {
+                            <small style="display:block; color:var(--color-mid)">@d.Referencia!.Nombre</small>
+                        }
+                    </td>
+                    <td style="text-align:center">@d.Cantidad</td>
+                    <td style="text-align:right">$@d.Precio.ToString("N2")</td>
+                    <td style="text-align:right; font-weight:600">
+                        $@((d.Cantidad * d.Precio).ToString("N2"))
+                    </td>
+                </tr>
+            }
+        </tbody>
+        <tfoot>
+            <tr>
+                <td colspan="3" style="text-align:right; font-weight:700; padding:12px 8px">Total:</td>
+                <td style="text-align:right; font-weight:700; font-size:16px; color:var(--color-primary)">
+                    $@total.ToString("N2")
+                </td>
+            </tr>
+        </tfoot>
+    </table>
+</div>
+
+<!-- Historial de estados -->
+<div class="card-custom">
+    <p class="card-custom-title"><i class="bi bi-clock-history"></i> Historial de Estados</p>
+    @if (!Model.Historial.Any())
+    {
+        <p style="color:var(--color-mid); font-size:14px">Sin historial registrado.</p>
+    }
+    else
+    {
+        <div class="timeline">
+            @foreach (var h in Model.Historial.OrderByDescending(h => h.Fecha))
+            {
+                <div class="timeline-item">
+                    <div class="timeline-dot"></div>
+                    <div class="timeline-content">
+                        <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap">
+                            @if (!string.IsNullOrWhiteSpace(h.EstadoAnterior))
+                            {
+                                <span class="badge-custom badge-neutral" style="font-size:11px">@h.EstadoAnterior</span>
+                                <i class="bi bi-arrow-right" style="color:var(--color-mid); font-size:11px"></i>
+                            }
+                            <span class="badge-custom badge-info" style="font-size:11px">@h.EstadoNuevo</span>
+                        </div>
+                        <small style="color:var(--color-mid)">
+                            @h.Fecha.ToLocalTime().ToString("dd/MM/yyyy HH:mm")
+                            @if (h.Usuario != null) { <text>— @h.Usuario.Nombre</text> }
+                        </small>
+                        @if (!string.IsNullOrWhiteSpace(h.Observacion))
+                        {
+                            <p style="margin:4px 0 0; font-size:13px">@h.Observacion</p>
+                        }
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+<!-- Modal cambio de estado -->
+<div id="modal-estado" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.4);
+     z-index:1000; align-items:center; justify-content:center">
+    <div style="background:var(--color-white); border-radius:var(--card-radius); padding:28px;
+                width:100%; max-width:420px; box-shadow:var(--shadow-card)">
+        <h3 style="margin:0 0 8px; font-size:17px" id="modal-titulo">Confirmar cambio</h3>
+        <p style="color:var(--color-mid); font-size:14px; margin-bottom:16px" id="modal-desc"></p>
+        <form asp-action="CambiarEstado" asp-route-id="@Model.Id" method="post">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="nuevoEstado" id="input-nuevo-estado"/>
+            <div class="form-group">
+                <label class="form-label-custom">Observación (opcional)</label>
+                <textarea name="observacion" class="form-control-custom" rows="2"
+                          placeholder="Motivo, notas..."></textarea>
+            </div>
+            <div style="display:flex; gap:10px; justify-content:flex-end; margin-top:16px">
+                <button type="button" class="btn-secondary-custom" onclick="cerrarModal()">Cancelar</button>
+                <button type="submit" class="btn-primary-custom" id="modal-btn-confirmar">Confirmar</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+function confirmarCambio(estado, label) {
+    document.getElementById('modal-titulo').textContent = label;
+    document.getElementById('modal-desc').textContent  =
+        `¿Confirma cambiar el pedido #@Model.Id a estado "${estado}"?`;
+    document.getElementById('input-nuevo-estado').value = estado;
+
+    const btn = document.getElementById('modal-btn-confirmar');
+    btn.className = estado === 'cancelado' ? 'btn-danger-custom' : 'btn-primary-custom';
+    btn.textContent = label;
+
+    document.getElementById('modal-estado').style.display = 'flex';
+}
+function cerrarModal() {
+    document.getElementById('modal-estado').style.display = 'none';
+}
+document.getElementById('modal-estado').addEventListener('click', function(e) {
+    if (e.target === this) cerrarModal();
+});
+</script>
+}
+
+<style>
+.detail-list { display:grid; grid-template-columns:140px 1fr; gap:6px 12px; font-size:14px; margin:0 }
+.detail-list dt { color:var(--color-mid); font-weight:500 }
+.detail-list dd { margin:0; color:var(--color-dark) }
+
+.timeline { display:flex; flex-direction:column; gap:0 }
+.timeline-item { display:flex; gap:14px; position:relative; padding-bottom:16px }
+.timeline-item:last-child { padding-bottom:0 }
+.timeline-dot {
+    width:10px; height:10px; border-radius:50%;
+    background:var(--color-primary); flex-shrink:0; margin-top:5px
+}
+.timeline-item::before {
+    content:''; position:absolute; left:4px; top:15px;
+    width:2px; height:calc(100% - 10px);
+    background:var(--color-border)
+}
+.timeline-item:last-child::before { display:none }
+.timeline-content { flex:1 }
+
+.btn-success-custom {
+    background:var(--color-success); color:#fff; border:none;
+    border-radius:var(--btn-radius); padding:9px 18px;
+    font-size:var(--font-size-base); font-weight:600;
+    cursor:pointer; display:inline-flex; align-items:center; gap:6px;
+    transition:opacity 0.15s
+}
+.btn-success-custom:hover { opacity:0.88 }
+.btn-danger-custom {
+    background:var(--color-danger); color:#fff; border:none;
+    border-radius:var(--btn-radius); padding:9px 18px;
+    font-size:var(--font-size-base); font-weight:600;
+    cursor:pointer; display:inline-flex; align-items:center; gap:6px;
+    transition:opacity 0.15s
+}
+.btn-danger-custom:hover { opacity:0.88 }
+</style>
