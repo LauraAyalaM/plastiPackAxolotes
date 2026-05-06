@@ -110,10 +110,21 @@
                             <span class="badge-custom @badgeClass">@p.Estado</span>
                         </td>
                         <td style="text-align:right">
-                            <a asp-action="Detalle" asp-route-id="@p.Id"
-                               class="btn-icon-custom" title="Ver detalle">
-                                <i class="bi bi-eye"></i>
-                            </a>
+                            <div style="display:flex;gap:6px;justify-content:flex-end;">
+                                <a asp-action="Detalle" asp-route-id="@p.Id"
+                                class="btn-secondary-custom btn-sm-custom" title="Ver detalle">
+                                    <i class="bi bi-eye"></i> Ver
+                                </a>
+                                @if (User.IsInRole("jefe_produccion") &&
+                                    (p.Estado == "pendiente" || p.Estado == "en_produccion"))
+                                {
+                                    <a asp-controller="OrdenesProduccion" asp-action="Crear"
+                                    asp-route-pedidoId="@p.Id"
+                                    class="btn-primary-custom btn-sm-custom" title="Crear orden de producción">
+                                        <i class="bi bi-gear"></i> Producción
+                                    </a>
+                                }
+                            </div>
                         </td>
                     </tr>
                 }

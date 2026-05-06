@@ -43,6 +43,15 @@
                 @t.Label
             </button>
         }
+        @if (esJefeProduccion &&
+            (Model.Estado == "pendiente" || Model.Estado == "en_produccion"))
+        {
+            <a asp-controller="OrdenesProduccion" asp-action="Crear"
+            asp-route-pedidoId="@Model.Id"
+            class="btn-primary-custom">
+                <i class="bi bi-gear"></i> Crear Orden de Producción
+            </a>
+        }
     </div>
 </div>
 

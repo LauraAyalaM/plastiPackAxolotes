@@ -1,6 +1,10 @@
 @{
     ViewData["Title"] = "Nueva Orden de Producción";
     Layout = "~/Views/Shared/_Layout.cshtml";
+
+    var pedidoSeleccionado = ViewBag.PedidoSeleccionado as PlastiPack.API.Models.Pedido;
+    var pedidos = ViewBag.Pedidos as List<PlastiPack.API.Models.Pedido>;
+    bool llegoPorPedido = pedidoSeleccionado != null;
 }
 
 <div class="page-header">
@@ -10,42 +14,138 @@
             <a asp-action="Index">Órdenes</a> / Nueva
         </div>
         <h1>Nueva Orden de Producción</h1>
-        <p>Selecciona un pedido y configura la orden</p>
+        @if (llegoPorPedido)
+        {
+            <p>Para el pedido <strong>#@pedidoSeleccionado!.Id</strong> —
+               @(pedidoSeleccionado.Cliente?.Nombre ?? "Pedido interno")</p>
+        }
+        else
+        {
+            <p>Selecciona un pedido y configura la orden</p>
+        }
     </div>
+    <a asp-controller="Pedidos" asp-action="@(llegoPorPedido ? "Detalle" : "Index")"
+       asp-route-id="@(llegoPorPedido ? pedidoSeleccionado!.Id : 0)"
+       class="btn-secondary-custom">
+        <i class="bi bi-arrow-left"></i> Volver a @(llegoPorPedido ? "Pedido" : "Pedidos")
+    </a>
 </div>
+
+@* ── TARJETA DEL PEDIDO (solo si llegó desde un pedido específico) ── *@
+@if (llegoPorPedido)
+{
+    <div class="card-custom" style="margin-bottom:24px;border-left:4px solid var(--color-primary);">
+        <div class="card-custom-title">
+            <i class="bi bi-cart3"></i> Pedido #@pedidoSeleccionado!.Id — Información
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:16px;">
+            <div>
+                <div style="font-size:12px;color:var(--color-mid);margin-bottom:4px;">CLIENTE</div>
+                <div style="font-weight:600;">@(pedidoSeleccionado.Cliente?.Nombre ?? "— Interno —")</div>
+            </div>
+            <div>
+                <div style="font-size:12px;color:var(--color-mid);margin-bottom:4px;">FECHA ENTREGA</div>
+                <div style="font-weight:600;">@pedidoSeleccionado.FechaEntrega.ToString("dd/MM/yyyy")</div>
+            </div>
+            <div>
+                <div style="font-size:12px;color:var(--color-mid);margin-bottom:4px;">ESTADO</div>
+                <span class="badge-warning">@pedidoSeleccionado.Estado</span>
+            </div>
+        </div>
+
+        @* Tabla de ítems del pedido *@
+        @if (pedidoSeleccionado.Detalles != null && pedidoSeleccionado.Detalles.Any())
+        {
+            <table class="table-custom">
+                <thead>
+                    <tr>
+                        <th>Referencia</th>
+                        <th>Nombre</th>
+                        <th style="text-align:center">Cantidad</th>
+                        <th style="text-align:right">Precio</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var d in pedidoSeleccionado.Detalles)
+                    {
+                        <tr>
+                            <td><strong>@(d.Referencia?.Codigo ?? d.ReferenciaId.ToString())</strong></td>
+                            <td style="color:var(--color-mid);">@(d.Referencia?.Nombre ?? "—")</td>
+                            <td style="text-align:center;">@d.Cantidad</td>
+                            <td style="text-align:right;">$@d.Precio.ToString("N2")</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+    </div>
+}
 
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;align-items:start;">
 
+    <!-- FORMULARIO -->
     <div class="card-custom">
-        <div class="card-custom-title"><i class="bi bi-gear"></i> Datos de la orden</div>
+        <div class="card-custom-title"><i class="bi bi-gear"></i> Configurar orden</div>
         <form asp-action="Crear" method="post">
             @Html.AntiForgeryToken()
 
-            <div class="form-group" style="margin-bottom:16px;">
-                <label class="form-label-custom">Pedido *</label>
-                <select name="pedidoId" id="selectPedido" class="form-control-custom" required>
-                    <option value="">— Selecciona un pedido —</option>
-                    @foreach (var p in (List<PlastiPack.API.Models.Pedido>)ViewBag.Pedidos)
-                    {
-                        <option value="@p.Id"
-                                selected="@(ViewBag.PedidoIdSeleccionado?.ToString() == p.Id.ToString())">
-                            #@p.Id — @(p.Cliente?.Nombre ?? "Interno") (@p.Estado)
-                        </option>
-                    }
-                </select>
-            </div>
+            @if (llegoPorPedido)
+            {
+                @* Pedido fijo, no se puede cambiar *@
+                <input type="hidden" name="pedidoId" value="@pedidoSeleccionado!.Id" />
+                <div class="form-group" style="margin-bottom:16px;">
+                    <label class="form-label-custom">Pedido</label>
+                    <div class="form-control-custom"
+                         style="background:var(--color-surface);cursor:default;color:var(--color-mid);">
+                        #@pedidoSeleccionado!.Id —
+                        @(pedidoSeleccionado.Cliente?.Nombre ?? "Interno")
+                    </div>
+                </div>
+            }
+            else
+            {
+                <div class="form-group" style="margin-bottom:16px;">
+                    <label class="form-label-custom">Pedido *</label>
+                    <select name="pedidoId" id="selectPedido" class="form-control-custom" required>
+                        <option value="">— Selecciona un pedido —</option>
+                        @foreach (var p in pedidos!)
+                        {
+                            <option value="@p.Id">
+                                #@p.Id — @(p.Cliente?.Nombre ?? "Interno") (@p.Estado)
+                            </option>
+                        }
+                    </select>
+                </div>
+            }
 
             <div class="form-group" style="margin-bottom:16px;">
                 <label class="form-label-custom">Ítem / Referencia *</label>
                 <select name="referenciaId" id="selectReferencia" class="form-control-custom" required>
-                    <option value="">— Primero selecciona un pedido —</option>
+                    @if (llegoPorPedido && pedidoSeleccionado!.Detalles != null)
+                    {
+                        <option value="">— Selecciona referencia —</option>
+                        @foreach (var d in pedidoSeleccionado.Detalles)
+                        {
+                            <option value="@d.ReferenciaId"
+                                    data-cantidad="@d.Cantidad"
+                                    data-impresion="@d.Referencia?.Impresion.ToString().ToLower()">
+                                @(d.Referencia?.Codigo) — @(d.Referencia?.Nombre)
+                                (cant: @d.Cantidad)
+                            </option>
+                        }
+                    }
+                    else
+                    {
+                        <option value="">— Primero selecciona un pedido —</option>
+                    }
                 </select>
             </div>
 
             <div class="form-group" style="margin-bottom:16px;">
                 <label class="form-label-custom">Cantidad requerida *</label>
                 <input type="number" name="cantidadRequerida" id="inputCantidad"
-                       class="form-control-custom" min="1" required />
+                       class="form-control-custom" min="1" required
+                       placeholder="Se autocompleta al elegir referencia" />
             </div>
 
             <div style="margin-bottom:16px;padding:16px;background:var(--color-surface);border-radius:8px;">
@@ -58,12 +158,12 @@
                     <span><i class="bi bi-printer"></i> Impresión</span>
                 </label>
                 <label style="display:flex;align-items:center;gap:10px;cursor:pointer;">
-                    <input type="checkbox" name="tieneRefilado" value="true"
+                    <input type="checkbox" name="tieneRefilado" value="true" id="chkRefilado"
                            style="width:16px;height:16px;" />
                     <span><i class="bi bi-scissors"></i> Refilado</span>
                 </label>
                 <p style="font-size:12px;color:var(--color-mid);margin-top:10px;">
-                    Extrusión y Sellado siempre se incluyen.
+                    Extrusión y Sellado siempre se incluyen automáticamente.
                 </p>
             </div>
 
@@ -76,100 +176,108 @@
         </form>
     </div>
 
+    <!-- PREVIEW FLUJO -->
     <div class="card-custom">
         <div class="card-custom-title"><i class="bi bi-diagram-3"></i> Flujo de procesos</div>
-        <div id="flujoPreview" style="display:flex;flex-direction:column;gap:8px;">
-            <div class="proceso-step" style="display:flex;align-items:center;gap:12px;padding:12px;
-                         background:var(--color-surface);border-radius:8px;">
+        <div style="display:flex;flex-direction:column;gap:8px;">
+
+            <div style="display:flex;align-items:center;gap:12px;padding:12px;
+                        background:var(--color-surface);border-radius:8px;">
                 <i class="bi bi-moisture" style="font-size:20px;color:var(--color-primary);"></i>
-                <div>
+                <div style="flex:1;">
                     <div style="font-weight:600;">1. Extrusión</div>
-                    <div style="font-size:12px;color:var(--color-mid);">Siempre incluido</div>
+                    <div style="font-size:12px;color:var(--color-mid);">Siempre incluido — primer paso</div>
                 </div>
-                <span class="badge-warning" style="margin-left:auto;">pendiente</span>
+                <span class="badge-warning">pendiente</span>
             </div>
 
             <div id="pasoImpresion" style="display:none;align-items:center;gap:12px;padding:12px;
-                         background:var(--color-surface);border-radius:8px;">
+                        background:#EFF6FF;border-radius:8px;border:1px dashed var(--color-primary);">
                 <i class="bi bi-printer" style="font-size:20px;color:var(--color-primary);"></i>
-                <div>
+                <div style="flex:1;">
                     <div style="font-weight:600;">Impresión</div>
                     <div style="font-size:12px;color:var(--color-mid);">Opcional</div>
                 </div>
-                <span class="badge-warning" style="margin-left:auto;">pendiente</span>
+                <span class="badge-warning">pendiente</span>
             </div>
 
             <div id="pasoRefilado" style="display:none;align-items:center;gap:12px;padding:12px;
-                         background:var(--color-surface);border-radius:8px;">
+                        background:#EFF6FF;border-radius:8px;border:1px dashed var(--color-primary);">
                 <i class="bi bi-scissors" style="font-size:20px;color:var(--color-primary);"></i>
-                <div>
+                <div style="flex:1;">
                     <div style="font-weight:600;">Refilado</div>
                     <div style="font-size:12px;color:var(--color-mid);">Opcional</div>
                 </div>
-                <span class="badge-warning" style="margin-left:auto;">pendiente</span>
+                <span class="badge-warning">pendiente</span>
             </div>
 
             <div style="display:flex;align-items:center;gap:12px;padding:12px;
-                         background:var(--color-surface);border-radius:8px;">
+                        background:var(--color-surface);border-radius:8px;">
                 <i class="bi bi-wrench" style="font-size:20px;color:var(--color-primary);"></i>
-                <div>
+                <div style="flex:1;">
                     <div style="font-weight:600;">Sellado</div>
                     <div style="font-size:12px;color:var(--color-mid);">Siempre incluido — último paso</div>
                 </div>
-                <span class="badge-warning" style="margin-left:auto;">pendiente</span>
+                <span class="badge-warning">pendiente</span>
             </div>
+        </div>
+
+        <div style="margin-top:20px;padding:12px;background:var(--color-surface);
+                    border-radius:8px;font-size:13px;color:var(--color-mid);">
+            <i class="bi bi-info-circle"></i>
+            Al elegir la referencia se autocompleta la cantidad y se detecta si tiene impresión.
         </div>
     </div>
 </div>
 
 @section Scripts {
 <script>
-document.getElementById('selectPedido').addEventListener('change', async function() {
-    const pedidoId = this.value;
-    const sel = document.getElementById('selectReferencia');
-    const inputCantidad = document.getElementById('inputCantidad');
-    sel.innerHTML = '<option value="">Cargando…</option>';
-
-    if (!pedidoId) {
-        sel.innerHTML = '<option value="">— Primero selecciona un pedido —</option>';
-        return;
-    }
-
-    const resp = await fetch(`/OrdenesProduccion/ItemsPedido?pedidoId=${pedidoId}`);
-    const items = await resp.json();
-
-    if (items.length === 0) {
-        sel.innerHTML = '<option value="">Sin ítems disponibles</option>';
-        return;
-    }
-
-    sel.innerHTML = '<option value="">— Selecciona referencia —</option>';
-    items.forEach(item => {
-        const opt = document.createElement('option');
-        opt.value = item.referenciaId;
-        opt.textContent = `${item.codigo} — ${item.nombre || ''} (cant. pedido: ${item.cantidad})`;
-        opt.dataset.cantidad = item.cantidad;
-        opt.dataset.impresion = item.tieneImpresion;
-        sel.appendChild(opt);
-    });
-});
-
+// Auto-completar al cambiar referencia
 document.getElementById('selectReferencia').addEventListener('change', function() {
     const opt = this.options[this.selectedIndex];
     if (opt && opt.dataset.cantidad) {
         document.getElementById('inputCantidad').value = opt.dataset.cantidad;
-        if (opt.dataset.impresion === 'True' || opt.dataset.impresion === 'true') {
-            document.getElementById('chkImpresion').checked = true;
-            document.getElementById('pasoImpresion').style.display = 'flex';
-        }
+        const tieneImpresion = opt.dataset.impresion === 'true';
+        document.getElementById('chkImpresion').checked = tieneImpresion;
+        document.getElementById('pasoImpresion').style.display = tieneImpresion ? 'flex' : 'none';
     }
 });
 
+// Si llegó sin pedido seleccionado, cargar ítems dinámicamente
+const selectPedido = document.getElementById('selectPedido');
+if (selectPedido) {
+    selectPedido.addEventListener('change', async function() {
+        const pedidoId = this.value;
+        const sel = document.getElementById('selectReferencia');
+        document.getElementById('inputCantidad').value = '';
+        sel.innerHTML = '<option value="">Cargando…</option>';
+        if (!pedidoId) {
+            sel.innerHTML = '<option value="">— Primero selecciona un pedido —</option>';
+            return;
+        }
+        const resp = await fetch(`/OrdenesProduccion/ItemsPedido?pedidoId=${pedidoId}`);
+        const items = await resp.json();
+        if (items.length === 0) {
+            sel.innerHTML = '<option value="">Sin ítems disponibles</option>';
+            return;
+        }
+        sel.innerHTML = '<option value="">— Selecciona referencia —</option>';
+        items.forEach(item => {
+            const opt = document.createElement('option');
+            opt.value = item.referenciaId;
+            opt.textContent = `${item.codigo} — ${item.nombre || ''} (cant: ${item.cantidad})`;
+            opt.dataset.cantidad  = item.cantidad;
+            opt.dataset.impresion = item.tieneImpresion;
+            sel.appendChild(opt);
+        });
+    });
+}
+
+// Mostrar/ocultar pasos opcionales
 document.getElementById('chkImpresion').addEventListener('change', function() {
     document.getElementById('pasoImpresion').style.display = this.checked ? 'flex' : 'none';
 });
-
-document.querySelector('input[name="tieneRefilado"]').addEventListener('change', function() {
+document.getElementById('chkRefilado').addEventListener('change', function() {
     document.getElementById('pasoRefilado').style.display = this.checked ? 'flex' : 'none';
 });
 </script>
