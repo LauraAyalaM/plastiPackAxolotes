@@ -74,10 +74,13 @@ else
                             <td>@item.Registros.Count</td>
                             <td><strong>@unidadesReg.ToString("N0")</strong></td>
                             <td>
-                                <a asp-action="Registrar" asp-route-id="@item.Id"
-                                   class="btn-primary-custom btn-sm-custom">
-                                    <i class="bi bi-pencil-square"></i> Registrar
-                                </a>
+                                @if (User.IsInRole("operario") || User.IsInRole("jefe_produccion"))
+                                {
+                                    <a asp-action="Registrar" asp-route-id="@item.Id"
+                                    class="btn-primary-custom btn-sm-custom">
+                                        <i class="bi bi-pencil-square"></i> Registrar
+                                    </a>
+                                }
                             </td>
                         </tr>
                     }

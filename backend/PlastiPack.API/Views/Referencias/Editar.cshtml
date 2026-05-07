@@ -2,6 +2,9 @@
 @{
     ViewData["Title"] = "Editar Referencia";
     ViewData["ActivePage"] = "Referencias";
+    var stockDisponible = Model.Inventario?.StockDisponible ?? 0;
+    var stockReservado  = Model.Inventario?.StockReservado  ?? 0;
+    var stockLibre      = stockDisponible - stockReservado;
 }
 
 <div class="page-header">
@@ -199,7 +202,7 @@
         </div>
     </div>
 
-    <div style="display:flex; gap:12px; justify-content:flex-end; margin-bottom:32px">
+    <div style="display:flex; gap:12px; justify-content:flex-end; margin-bottom:16px">
         <a asp-action="Detalle" asp-route-id="@Model.Id" class="btn-secondary-custom">
             <i class="bi bi-x-lg"></i> Cancelar
         </a>
@@ -207,5 +210,188 @@
             <i class="bi bi-check-lg"></i> Guardar Cambios
         </button>
     </div>
-
 </form>
+
+<!-- ═══════════════════════════════════════════
+     GESTIÓN DE STOCK — formulario separado
+     Solo visible para jefe_produccion
+     ═══════════════════════════════════════════ -->
+@if (User.IsInRole("jefe_produccion"))
+{
+    <div class="card-custom" style="margin-bottom:32px; border-top:3px solid var(--color-primary)">
+        <p class="card-custom-title"><i class="bi bi-boxes"></i> Gestión de Stock</p>
+
+        <!-- Indicadores actuales (solo lectura) -->
+        <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-bottom:20px">
+            <div style="background:var(--color-light); border-radius:8px; padding:14px; text-align:center">
+                <p style="margin:0; font-size:11px; color:var(--color-mid); text-transform:uppercase; letter-spacing:.5px">
+                    Stock Total
+                </p>
+                <p style="margin:4px 0 0; font-size:26px; font-weight:700; color:var(--color-dark)">
+                    @stockDisponible
+                </p>
+            </div>
+            <div style="background:var(--color-light); border-radius:8px; padding:14px; text-align:center">
+                <p style="margin:0; font-size:11px; color:var(--color-mid); text-transform:uppercase; letter-spacing:.5px">
+                    Reservado (pedidos)
+                </p>
+                <p style="margin:4px 0 0; font-size:26px; font-weight:700; color:var(--badge-warning-text, #92400e)">
+                    @stockReservado
+                </p>
+            </div>
+            <div style="background:var(--color-light); border-radius:8px; padding:14px; text-align:center">
+                <p style="margin:0; font-size:11px; color:var(--color-mid); text-transform:uppercase; letter-spacing:.5px">
+                    Disponible libre
+                </p>
+                <p style="margin:4px 0 0; font-size:26px; font-weight:700;
+                           color:@(stockLibre > 0 ? "var(--color-success)" : "var(--color-danger)")">
+                    @stockLibre
+                </p>
+            </div>
+        </div>
+
+        <!-- Formulario de ajuste -->
+        <form asp-action="AjustarStock" asp-route-id="@Model.Id" method="post" id="form-stock">
+            @Html.AntiForgeryToken()
+            <div class="form-grid-3">
+
+                <!-- Tipo de movimiento -->
+                <div class="form-group">
+                    <label class="form-label-custom">Tipo de movimiento *</label>
+                    <select class="form-control-custom" id="sel-tipo-mov" required>
+                        <option value="entrada">Entrada (aumentar)</option>
+                        <option value="salida">Salida (reducir)</option>
+                    </select>
+                </div>
+
+                <!-- Cantidad -->
+                <div class="form-group">
+                    <label class="form-label-custom">Cantidad *</label>
+                    <input type="number" id="input-cantidad-stock" name="cantidad"
+                           class="form-control-custom" min="1" required
+                           placeholder="Ej: 100"/>
+                </div>
+
+                <!-- Motivo -->
+                <div class="form-group">
+                    <label class="form-label-custom">Motivo *</label>
+                    <select class="form-control-custom" id="sel-motivo-txt" required>
+                        <option value="">Seleccionar...</option>
+                        <optgroup label="Entradas" id="grp-entradas">
+                            <option value="Producción terminada">Producción terminada</option>
+                            <option value="Ajuste de inventario">Ajuste de inventario</option>
+                            <option value="Devolución de cliente">Devolución de cliente</option>
+                            <option value="Ingreso inicial">Ingreso inicial</option>
+                        </optgroup>
+                        <optgroup label="Salidas" id="grp-salidas" style="display:none">
+                            <option value="Pedido despachado">Pedido despachado</option>
+                            <option value="Merma / desperdicio">Merma / desperdicio</option>
+                            <option value="Ajuste de inventario">Ajuste de inventario</option>
+                            <option value="Muestra">Muestra</option>
+                        </optgroup>
+                    </select>
+                    <!-- Campo oculto que realmente se envía -->
+                    <input type="hidden" name="motivo" id="input-motivo"/>
+                </div>
+            </div>
+
+            <!-- Previsualización del resultado -->
+            <div id="preview-stock" style="display:none; background:var(--color-light);
+                 border-radius:8px; padding:12px 16px; margin-bottom:16px;
+                 border-left:3px solid var(--color-primary); font-size:14px">
+                Nuevo stock total: <strong id="preview-valor">—</strong>
+            </div>
+
+            <div style="display:flex; gap:12px; justify-content:flex-end">
+                <button type="button" class="btn-secondary-custom" id="btn-limpiar-stock">
+                    <i class="bi bi-x-lg"></i> Limpiar
+                </button>
+                <button type="submit" class="btn-primary-custom" id="btn-aplicar-stock">
+                    <i class="bi bi-arrow-up-circle"></i> Aplicar Movimiento
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <script>
+    (function () {
+        const selTipo     = document.getElementById('sel-tipo-mov');
+        const inputCant   = document.getElementById('input-cantidad-stock');
+        const selMotivo   = document.getElementById('sel-motivo-txt');
+        const inputMotivo = document.getElementById('input-motivo');
+        const hiddenCant  = document.querySelector('[name="cantidad"]');
+        const preview     = document.getElementById('preview-stock');
+        const previewVal  = document.getElementById('preview-valor');
+        const btnAplicar  = document.getElementById('btn-aplicar-stock');
+        const btnLimpiar  = document.getElementById('btn-limpiar-stock');
+        const grpEntradas = document.getElementById('grp-entradas');
+        const grpSalidas  = document.getElementById('grp-salidas');
+        const stockActual = @stockDisponible;
+
+        // Cambiar grupos de motivo según tipo
+        selTipo.addEventListener('change', () => {
+            const esEntrada = selTipo.value === 'entrada';
+            grpEntradas.style.display = esEntrada ? '' : 'none';
+            grpSalidas.style.display  = esEntrada ? 'none' : '';
+            selMotivo.value = '';
+            inputMotivo.value = '';
+            btnAplicar.innerHTML = esEntrada
+                ? '<i class="bi bi-arrow-up-circle"></i> Aplicar Entrada'
+                : '<i class="bi bi-arrow-down-circle"></i> Aplicar Salida';
+            actualizarPreview();
+        });
+
+        // Actualizar previsualización
+        function actualizarPreview() {
+            const cant = parseInt(inputCant.value) || 0;
+            if (cant <= 0) { preview.style.display = 'none'; return; }
+
+            const esEntrada = selTipo.value === 'entrada';
+            const nuevo = esEntrada ? stockActual + cant : stockActual - cant;
+
+            preview.style.display = 'block';
+            preview.style.borderLeftColor = nuevo >= 0 ? 'var(--color-success)' : 'var(--color-danger)';
+            previewVal.textContent = nuevo + ' unidades';
+            previewVal.style.color = nuevo >= 0 ? 'var(--color-success)' : 'var(--color-danger)';
+        }
+
+        inputCant.addEventListener('input', actualizarPreview);
+        selTipo.addEventListener('change', actualizarPreview);
+
+        // Sincronizar motivo al campo oculto
+        selMotivo.addEventListener('change', () => {
+            inputMotivo.value = selMotivo.value;
+        });
+
+        // Validar y ajustar signo antes de enviar
+        document.getElementById('form-stock').addEventListener('submit', e => {
+            const cant = parseInt(inputCant.value) || 0;
+            if (cant <= 0) {
+                e.preventDefault();
+                alert('La cantidad debe ser mayor a 0.');
+                return;
+            }
+            if (!selMotivo.value) {
+                e.preventDefault();
+                alert('Seleccione un motivo.');
+                return;
+            }
+            inputMotivo.value = selMotivo.value;
+            // Si es salida, enviar negativo
+            if (selTipo.value === 'salida') {
+                hiddenCant.value = -Math.abs(cant);
+            } else {
+                hiddenCant.value = Math.abs(cant);
+            }
+        });
+
+        // Limpiar formulario
+        btnLimpiar.addEventListener('click', () => {
+            inputCant.value   = '';
+            selMotivo.value   = '';
+            inputMotivo.value = '';
+            preview.style.display = 'none';
+        });
+    })();
+    </script>
+}

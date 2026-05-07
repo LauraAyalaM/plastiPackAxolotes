@@ -221,6 +221,43 @@ namespace PlastiPack.API.Controllers
             TempData["Success"] = $"Estado cambiado a '{referencia.Estado}'.";
             return RedirectToAction(nameof(Index));
         }
+  
+        // ── AJUSTAR STOCK (solo jefe_produccion) ──
+        [HttpPost]
+        [Authorize(Roles = "jefe_produccion")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> AjustarStock(int id, int cantidad, string motivo)
+        {
+            if (cantidad == 0)
+            {
+                TempData["Error"] = "La cantidad debe ser distinta de cero.";
+                return RedirectToAction(nameof(Editar), new { id });
+            }
+
+            var inventario = await _context.Inventario
+                .FirstOrDefaultAsync(i => i.ReferenciaId == id);
+
+            if (inventario == null)
+            {
+                TempData["Error"] = "No se encontró el registro de inventario.";
+                return RedirectToAction(nameof(Editar), new { id });
+            }
+
+            var nuevoStock = inventario.StockDisponible + cantidad;
+            if (nuevoStock < 0)
+            {
+                TempData["Error"] = $"No se puede reducir el stock por debajo de 0. Stock actual: {inventario.StockDisponible}.";
+                return RedirectToAction(nameof(Editar), new { id });
+            }
+
+            inventario.StockDisponible      = nuevoStock;
+            inventario.UltimaActualizacion  = DateTime.UtcNow;
+            await _context.SaveChangesAsync();
+
+            var signo = cantidad > 0 ? $"+{cantidad}" : cantidad.ToString();
+            TempData["Success"] = $"Stock ajustado {signo} unidades. Nuevo stock: {nuevoStock}. Motivo: {motivo}";
+            return RedirectToAction(nameof(Editar), new { id });
+        }
 
         // ── BUSQUEDA AJAX (para otros módulos) ──
         [HttpGet]

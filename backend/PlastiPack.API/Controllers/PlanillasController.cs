@@ -25,8 +25,16 @@ namespace PlastiPack.API.Controllers
                 .Include(p => p.Items)
                 .AsQueryable();
 
-            if (!string.IsNullOrWhiteSpace(fecha) && DateTime.TryParse(fecha, out var fechaParsed))
-                query = query.Where(p => p.Fecha.Date == fechaParsed.Date);
+            if (!string.IsNullOrWhiteSpace(fecha) &&
+                DateTime.TryParse(fecha, out var fechaParsed))
+            {
+                var inicio = fechaParsed.Date;
+                var fin = inicio.AddDays(1);
+
+                query = query.Where(p =>
+                    p.Fecha >= inicio &&
+                    p.Fecha < fin);
+            }
 
             if (selladoaId.HasValue)
                 query = query.Where(p => p.SelladroaId == selladoaId.Value);
@@ -93,7 +101,7 @@ namespace PlastiPack.API.Controllers
 
             ViewBag.Selladoras       = selladoras;
             ViewBag.ProcesosSellado  = procesosSellado;
-            ViewBag.FechaHoy         = DateTime.Today.ToString("yyyy-MM-dd");
+            ViewBag.FechaHoy         = DateTime.UtcNow.ToString("yyyy-MM-dd");
             ViewData["ActivePage"]   = "Planillas";
             return View();
         }

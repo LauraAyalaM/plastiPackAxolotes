@@ -117,7 +117,7 @@ namespace PlastiPack.API.Controllers
             List<decimal> precios)
         {
             // ── Validación: fecha mínima 15 días ──
-            var hoy = DateOnly.FromDateTime(DateTime.Today);
+            var hoy = DateOnly.FromDateTime(DateTime.UtcNow);
             if (DateOnly.FromDateTime(model.FechaEntrega) < hoy.AddDays(15))
             {
                 ModelState.AddModelError("FechaEntrega",
@@ -177,9 +177,14 @@ namespace PlastiPack.API.Controllers
             var vendedorId = Guid.Parse(User.FindFirst(
                 System.Security.Claims.ClaimTypes.NameIdentifier)!.Value);
             model.VendedorId  = vendedorId;
-            model.FechaCreacion = DateTime.Today;
+            model.FechaCreacion = DateTime.UtcNow;
             model.Estado      = "pendiente";
             model.CreatedAt   = DateTime.UtcNow;
+
+            // CONVERTIR A UTC
+            model.FechaEntrega = DateTime.SpecifyKind(
+                model.FechaEntrega,
+                DateTimeKind.Utc);
 
             // Cliente nulo para pedidos internos
             if (model.Destino == "interno") model.ClienteId = null;
@@ -188,6 +193,11 @@ namespace PlastiPack.API.Controllers
             await _context.SaveChangesAsync();
 
             // ── Guardar ítems y reservar stock ──
+            //validacion si es null
+            if (referenciaIds == null)
+                {
+                    return BadRequest();
+                }
             for (int i = 0; i < referenciaIds.Count; i++)
             {
                 _context.PedidoDetalles.Add(new PedidoDetalle

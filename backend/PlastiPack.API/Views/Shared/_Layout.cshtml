@@ -67,11 +67,14 @@
             <i class="bi bi-bar-chart-line"></i> Reportes
         </a>
 
-        <span class="sidebar-section-label">Sistema</span>
-        <a class="sidebar-item @(ViewData["ActivePage"]?.ToString() == "Usuarios" ? "active" : "")"
-           asp-controller="Usuarios" asp-action="Index">
-            <i class="bi bi-person-gear"></i> Usuarios
-        </a>
+        @if (User.IsInRole("jefe_produccion"))
+        {
+            <span class="sidebar-section-label">Sistema</span>
+            <a class="sidebar-item @(ViewData["ActivePage"]?.ToString() == "Usuarios" ? "active" : "")"
+            asp-controller="Usuarios" asp-action="Index">
+                <i class="bi bi-person-gear"></i> Usuarios
+            </a>
+        }
 
         <!-- USUARIO ACTIVO + CERRAR SESIÓN -->
         <div class
@@ -80,7 +83,6 @@
                     <i class="bi bi-person-fill"></i>
                 </div>
                 <div class="sidebar-user-info">
-                    <span class="sidebar-user-name">@User.Identity?.Name</span>
                     <span class="sidebar-user-role">
                         @(User.IsInRole("jefe_produccion") ? "Jefe de Producción" :
                           User.IsInRole("vendedor")        ? "Vendedor" :
