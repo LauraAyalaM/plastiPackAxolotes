@@ -1,0 +1,146 @@
+@{
+    ViewData["Title"] = "Producción General";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    var porDia = ((System.Collections.IEnumerable)ViewBag.PorDia).Cast<dynamic>().ToList();
+    var porRef = ((System.Collections.IEnumerable)ViewBag.PorReferencia).Cast<dynamic>().ToList();
+    var maxDia = porDia.Any() ? (int)porDia.Max(d => (int)d.TotalUnidades) : 1;
+    var maxRef = porRef.Any() ? (int)porRef.Max(r => (int)r.TotalUnidades) : 1;
+}
+
+<div class="page-header">
+    <div class="page-header-left">
+        <div class="breadcrumb-custom">
+            <a asp-controller="Home" asp-action="Index">Inicio</a> /
+            <a asp-action="Index">Reportes</a> / Producción General
+        </div>
+        <h1>Producción General</h1>
+        <p>@DateTime.Parse(ViewBag.FechaDesde).ToString("dd/MM/yyyy") — @DateTime.Parse(ViewBag.FechaHasta).ToString("dd/MM/yyyy")</p>
+    </div>
+    <a asp-action="Index" class="btn-secondary-custom">
+        <i class="bi bi-arrow-left"></i> Reportes
+    </a>
+</div>
+
+<div class="card-custom">
+    <form method="get" class="filter-bar">
+        <div style="display:flex;align-items:center;gap:8px;">
+            <label class="form-label-custom" style="margin-bottom:0;white-space:nowrap;">Desde:</label>
+            <input type="date" name="desde" value="@ViewBag.FechaDesde" class="form-control-custom" />
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;">
+            <label class="form-label-custom" style="margin-bottom:0;white-space:nowrap;">Hasta:</label>
+            <input type="date" name="hasta" value="@ViewBag.FechaHasta" class="form-control-custom" />
+        </div>
+        <button type="submit" class="btn-primary-custom">
+            <i class="bi bi-search"></i> Consultar
+        </button>
+    </form>
+</div>
+
+<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px;">
+    <div class="card-custom" style="margin-bottom:0;text-align:center;">
+        <div style="font-size:28px;font-weight:700;color:var(--color-primary);">@(((int)ViewBag.TotalUnidades).ToString("N0"))</div>
+        <div style="font-size:var(--font-size-sm);color:var(--color-mid);">Unidades totales</div>
+    </div>
+    <div class="card-custom" style="margin-bottom:0;text-align:center;">
+        <div style="font-size:28px;font-weight:700;color:#D97706;">@(((decimal)ViewBag.TotalDesperdicio).ToString("N3")) kg</div>
+        <div style="font-size:var(--font-size-sm);color:var(--color-mid);">Desperdicio total</div>
+    </div>
+    <div class="card-custom" style="margin-bottom:0;text-align:center;">
+        <div style="font-size:28px;font-weight:700;color:#16A34A;">@ViewBag.DiasConRegistro</div>
+        <div style="font-size:var(--font-size-sm);color:var(--color-mid);">Días con actividad</div>
+    </div>
+    <div class="card-custom" style="margin-bottom:0;text-align:center;">
+        <div style="font-size:28px;font-weight:700;color:#7C3AED;">@porRef.Count</div>
+        <div style="font-size:var(--font-size-sm);color:var(--color-mid);">Referencias producidas</div>
+    </div>
+</div>
+
+<div style="display:grid;grid-template-columns:2fr 1fr;gap:20px;">
+
+    <div class="card-custom">
+        <div class="card-custom-title">Producción Diaria (unidades)</div>
+        @if (!porDia.Any())
+        {
+            <p style="text-align:center;color:var(--color-mid);padding:32px;">Sin datos en el rango seleccionado.</p>
+        }
+        else
+        {
+            <div style="display:flex;flex-direction:column;gap:8px;">
+                @foreach (dynamic d in porDia)
+                {
+                    var pct = maxDia > 0 ? (int)((int)d.TotalUnidades * 100 / maxDia) : 0;
+                    <div style="display:grid;grid-template-columns:90px 1fr 80px;align-items:center;gap:10px;">
+                        <span style="font-size:var(--font-size-xs);color:var(--color-mid);text-align:right;">
+                            @((DateTime)d.Fecha).ToString("dd/MM")
+                        </span>
+                        <div style="background:var(--color-surface);border-radius:4px;height:20px;overflow:hidden;">
+                            <div style="background:var(--color-primary);height:100%;width:@pct%;border-radius:4px;"></div>
+                        </div>
+                        <span style="font-size:var(--font-size-xs);font-weight:600;color:var(--color-dark);">
+                            @((int)d.TotalUnidades).ToString("N0")
+                        </span>
+                    </div>
+                }
+            </div>
+        }
+    </div>
+
+    <div class="card-custom">
+        <div class="card-custom-title">Top 10 Referencias</div>
+        @if (!porRef.Any())
+        {
+            <p style="text-align:center;color:var(--color-mid);padding:32px;">Sin datos.</p>
+        }
+        else
+        {
+            <div style="display:flex;flex-direction:column;gap:10px;">
+                @foreach (var (r, idx) in porRef.Select((x, i) => ((dynamic)x, i)))
+                {
+                    var pct = maxRef > 0 ? (int)((int)r.TotalUnidades * 100 / maxRef) : 0;
+                    var barColor = idx == 0 ? "#D97706" : idx == 1 ? "#16A34A" : "var(--color-primary)";
+                    <div>
+                        <div style="display:flex;justify-content:space-between;margin-bottom:3px;">
+                            <span style="font-size:var(--font-size-xs);font-weight:600;color:var(--color-dark);">@r.Codigo</span>
+                            <span style="font-size:var(--font-size-xs);color:var(--color-mid);">@((int)r.TotalUnidades).ToString("N0")</span>
+                        </div>
+                        <div style="background:var(--color-surface);border-radius:999px;height:6px;">
+                            <div style="background:@barColor;height:100%;width:@pct%;border-radius:999px;"></div>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+    </div>
+</div>
+
+@if (porDia.Any())
+{
+    <div class="card-custom">
+        <div class="card-custom-title">Detalle por Día</div>
+        <table class="table-custom">
+            <thead>
+                <tr>
+                    <th>Fecha</th>
+                    <th>Unidades</th>
+                    <th>Desperdicio</th>
+                    <th>Registros</th>
+                    <th>Promedio / registro</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (dynamic d in porDia)
+                {
+                    var promedio = (int)d.NumRegistros > 0 ? (int)d.TotalUnidades / (int)d.NumRegistros : 0;
+                    <tr>
+                        <td>@((DateTime)d.Fecha).ToString("dd/MM/yyyy")</td>
+                        <td><strong>@((int)d.TotalUnidades).ToString("N0")</strong></td>
+                        <td>@((decimal)d.TotalDesperdicio).ToString("N3") kg</td>
+                        <td>@d.NumRegistros</td>
+                        <td style="color:var(--color-mid);">@promedio.ToString("N0")</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}

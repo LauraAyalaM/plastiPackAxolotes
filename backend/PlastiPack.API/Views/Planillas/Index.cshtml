@@ -1,0 +1,110 @@
+@model IEnumerable<PlastiPack.API.Models.Planilla>
+@{
+    ViewData["Title"] = "Planillas de Sellado";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+
+    string BadgePlanilla(int completados, int total) =>
+        total == 0 ? "badge-warning" :
+        completados == total ? "badge-success" :
+        completados > 0 ? "badge-info" : "badge-warning";
+}
+
+<div class="page-header">
+    <div class="page-header-left">
+        <div class="breadcrumb-custom"><a asp-controller="Home" asp-action="Index">Inicio</a> / Sellado</div>
+        <h1>Planillas de Sellado</h1>
+        <p>@ViewBag.Total planilla(s) encontrada(s)</p>
+    </div>
+    @if (User.IsInRole("jefe_produccion"))
+    {
+        <a asp-action="Crear" class="btn-primary-custom">
+            <i class="bi bi-plus-lg"></i> Nueva Planilla
+        </a>
+    }
+</div>
+
+<div class="card-custom">
+    <form method="get" class="filter-bar">
+        <input type="date" name="fecha" value="@ViewBag.FechaFiltro" class="form-control-custom" />
+        <select name="selladoaId" class="form-control-custom">
+            <option value="">Todas las selladoras</option>
+            @foreach (var s in (List<PlastiPack.API.Models.Selladora>)ViewBag.Selladoras)
+            {
+                <option value="@s.Id" selected="@(ViewBag.SelladoraId?.ToString() == s.Id.ToString())">
+                    @s.Nombre
+                </option>
+            }
+        </select>
+        <button type="submit" class="btn-primary-custom">
+            <i class="bi bi-search"></i> Filtrar
+        </button>
+        <a asp-action="Index" class="btn-secondary-custom">Limpiar</a>
+    </form>
+
+    <table class="table-custom">
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>Fecha</th>
+                <th>Selladora</th>
+                <th>Ítems</th>
+                <th>Completados</th>
+                <th>Estado</th>
+                <th>Creada por</th>
+                <th>Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var p in Model)
+            {
+                var completados = p.Items.Count(i => i.Estado == "completado");
+                var total = p.Items.Count;
+                <tr>
+                    <td><strong>#@p.Id</strong></td>
+                    <td>@p.Fecha.ToString("dd/MM/yyyy")</td>
+                    <td>
+                        <span style="display:inline-flex;align-items:center;gap:6px;">
+                            <i class="bi bi-tools" style="color:var(--color-primary)"></i>
+                            @(p.Selladora?.Nombre ?? "—")
+                        </span>
+                    </td>
+                    <td>@total</td>
+                    <td>@completados / @total</td>
+                    <td>
+                        <span class="@BadgePlanilla(completados, total)">
+                            @(completados == total && total > 0 ? "completada" : completados > 0 ? "en progreso" : "pendiente")
+                        </span>
+                    </td>
+                    <td>@(p.UsuarioCreador?.Nombre ?? "—")</td>
+                    <td>
+                        <a asp-action="Detalle" asp-route-id="@p.Id" class="btn-secondary-custom btn-sm-custom">
+                            <i class="bi bi-eye"></i> Ver
+                        </a>
+                    </td>
+                </tr>
+            }
+            @if (!Model.Any())
+            {
+                <tr>
+                    <td colspan="8" style="text-align:center;padding:32px;color:var(--color-mid);">
+                        No hay planillas que coincidan con los filtros.
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+
+    @if (ViewBag.TotalPaginas > 1)
+    {
+        <div class="pagination-custom">
+            @for (int i = 1; i <= ViewBag.TotalPaginas; i++)
+            {
+                <a asp-action="Index"
+                   asp-route-pagina="@i"
+                   asp-route-fecha="@ViewBag.FechaFiltro"
+                   asp-route-selladoaId="@ViewBag.SelladoraId"
+                   class="@(i == ViewBag.PaginaActual ? "active-page" : "")">@i</a>
+            }
+        </div>
+    }
+</div>

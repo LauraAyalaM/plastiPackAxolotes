@@ -1,0 +1,78 @@
+@model IEnumerable<PlastiPack.API.Models.RegistroSellado>
+@{
+    ViewData["Title"] = "Mis Registros";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="page-header">
+    <div class="page-header-left">
+        <div class="breadcrumb-custom">
+            <a asp-controller="Home" asp-action="Index">Inicio</a> /
+            <a asp-action="Index">Sellado</a> / Mis Registros
+        </div>
+        <h1>Mis Registros de Sellado</h1>
+        <p>Últimos 100 registros</p>
+    </div>
+</div>
+
+<div class="card-custom">
+    <form method="get" class="filter-bar">
+        <input type="date" name="fecha" value="@ViewBag.FechaFiltro" class="form-control-custom" />
+        <button type="submit" class="btn-primary-custom">
+            <i class="bi bi-search"></i> Filtrar
+        </button>
+        <a asp-action="MisRegistros" class="btn-secondary-custom">Limpiar</a>
+    </form>
+
+    <table class="table-custom">
+        <thead>
+            <tr>
+                <th>Fecha</th>
+                <th>Selladora</th>
+                <th>Referencia</th>
+                <th>Rollo</th>
+                <th>Inicio</th>
+                <th>Fin</th>
+                <th>Unidades</th>
+                <th>Desperdicio</th>
+                <th>Obs.</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var r in Model)
+            {
+                <tr>
+                    <td>@r.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy")</td>
+                    <td>@(r.PlanillaItem?.Planilla?.Selladora?.Nombre ?? "—")</td>
+                    <td><strong>@(r.PlanillaItem?.OrdenProceso?.OrdenProduccion?.Referencia?.Codigo ?? "—")</strong></td>
+                    <td><span class="badge-info">@(r.Rollo?.NumeroRollo ?? "—")</span></td>
+                    <td>@r.HoraInicio.ToString("HH:mm")</td>
+                    <td>@(r.HoraFin?.ToString("HH:mm") ?? "—")</td>
+                    <td><strong>@(r.CantidadUnidades?.ToString("N0") ?? "—")</strong></td>
+                    <td>@r.PesoDesperdicio.ToString("N3") kg</td>
+                    <td style="font-size:var(--font-size-xs);color:var(--color-mid);">@(r.Observaciones ?? "—")</td>
+                </tr>
+            }
+            @if (!Model.Any())
+            {
+                <tr>
+                    <td colspan="9" style="text-align:center;padding:32px;color:var(--color-mid);">
+                        No hay registros para el filtro seleccionado.
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+
+    @if (Model.Any())
+    {
+        <div style="display:flex;gap:24px;padding-top:16px;border-top:1px solid var(--color-border);margin-top:12px;">
+            <div style="font-size:var(--font-size-sm);color:var(--color-mid);">
+                <strong style="color:var(--color-dark);">@Model.Sum(r => r.CantidadUnidades ?? 0).ToString("N0")</strong> unidades totales
+            </div>
+            <div style="font-size:var(--font-size-sm);color:var(--color-mid);">
+                <strong style="color:var(--color-dark);">@Model.Sum(r => r.PesoDesperdicio).ToString("N3") kg</strong> de desperdicio
+            </div>
+        </div>
+    }
+</div>

@@ -1,0 +1,128 @@
+@model IEnumerable<PlastiPack.API.Models.RegistroSellado>
+@{
+    ViewData["Title"] = "Reporte por Operario";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    var resumenList = ((System.Collections.IEnumerable)ViewBag.ResumenPorOperario).Cast<dynamic>().ToList();
+    var maxUnidades = resumenList.Any() ? (int)resumenList.Max(x => (int)x.TotalUnidades) : 1;
+}
+
+<div class="page-header">
+    <div class="page-header-left">
+        <div class="breadcrumb-custom">
+            <a asp-controller="Home" asp-action="Index">Inicio</a> /
+            <a asp-action="Index">Reportes</a> / Por Operario
+        </div>
+        <h1>Reporte por Operario</h1>
+        <p>@ViewBag.FechaDisplay</p>
+    </div>
+    <a asp-action="Index" class="btn-secondary-custom">
+        <i class="bi bi-arrow-left"></i> Reportes
+    </a>
+</div>
+
+<div class="card-custom">
+    <form method="get" class="filter-bar">
+        <input type="date" name="fecha" value="@ViewBag.FechaFiltro" class="form-control-custom" />
+        <select name="operarioId" class="form-control-custom">
+            <option value="">Todos los operarios</option>
+            @foreach (var op in (List<PlastiPack.API.Models.Usuario>)ViewBag.Operarios)
+            {
+                <option value="@op.Id" selected="@(ViewBag.OperarioIdFiltro?.ToString() == op.Id.ToString())">
+                    @op.Nombre
+                </option>
+            }
+        </select>
+        <button type="submit" class="btn-primary-custom">
+            <i class="bi bi-search"></i> Consultar
+        </button>
+    </form>
+</div>
+
+<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:24px;">
+    <div class="card-custom" style="margin-bottom:0;text-align:center;">
+        <div style="font-size:32px;font-weight:700;color:var(--color-primary);">@(((int)ViewBag.TotalUnidades).ToString("N0"))</div>
+        <div style="font-size:var(--font-size-sm);color:var(--color-mid);">Unidades totales</div>
+    </div>
+    <div class="card-custom" style="margin-bottom:0;text-align:center;">
+        <div style="font-size:32px;font-weight:700;color:#D97706;">@(((decimal)ViewBag.TotalDesperdicio).ToString("N3")) kg</div>
+        <div style="font-size:var(--font-size-sm);color:var(--color-mid);">Desperdicio total</div>
+    </div>
+    <div class="card-custom" style="margin-bottom:0;text-align:center;">
+        <div style="font-size:32px;font-weight:700;color:#16A34A;">@Model.Count()</div>
+        <div style="font-size:var(--font-size-sm);color:var(--color-mid);">Registros totales</div>
+    </div>
+</div>
+
+@if (resumenList.Any())
+{
+    <div class="card-custom">
+        <div class="card-custom-title">Ranking de Productividad</div>
+        @foreach (var (item, idx) in resumenList.Select((x, i) => (x, i)))
+        {
+            var pct = maxUnidades > 0 ? (int)((int)item.TotalUnidades * 100 / maxUnidades) : 0;
+            var medalColor = idx == 0 ? "#D97706" : idx == 1 ? "#6B7280" : idx == 2 ? "#92400E" : "var(--color-border)";
+            var medalText  = idx < 3 ? "#fff" : "var(--color-mid)";
+            <div style="margin-bottom:20px;">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+                    <div style="display:flex;align-items:center;gap:10px;">
+                        <span style="background:@medalColor;color:@medalText;border-radius:50%;width:28px;height:28px;display:inline-flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;">
+                            @(idx + 1)
+                        </span>
+                        <strong>@item.Nombre</strong>
+                    </div>
+                    <div>
+                        <strong style="font-size:var(--font-size-md);color:var(--color-primary);">@((int)item.TotalUnidades).ToString("N0")</strong>
+                        <span style="font-size:var(--font-size-sm);color:var(--color-mid);margin-left:4px;">unidades</span>
+                    </div>
+                </div>
+                <div style="background:var(--color-surface);border-radius:999px;height:8px;overflow:hidden;">
+                    <div style="background:var(--color-primary);height:100%;width:@pct%;border-radius:999px;"></div>
+                </div>
+                <div style="font-size:var(--font-size-xs);color:var(--color-mid);margin-top:4px;">
+                    @item.NumRegistros registro(s) · @((decimal)item.TotalDesperdicio).ToString("N3") kg desperdicio
+                </div>
+            </div>
+        }
+    </div>
+}
+
+<div class="card-custom">
+    <div class="card-custom-title">Detalle de Registros</div>
+    <table class="table-custom">
+        <thead>
+            <tr>
+                <th>Operario</th>
+                <th>Selladora</th>
+                <th>Referencia</th>
+                <th>Rollo</th>
+                <th>Inicio</th>
+                <th>Fin</th>
+                <th>Unidades</th>
+                <th>Desperdicio</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var r in Model)
+            {
+                <tr>
+                    <td>@(r.Operario?.Nombre ?? "—")</td>
+                    <td>@(r.PlanillaItem?.Planilla?.Selladora?.Nombre ?? "—")</td>
+                    <td><strong>@(r.PlanillaItem?.OrdenProceso?.OrdenProduccion?.Referencia?.Codigo ?? "—")</strong></td>
+                    <td><span class="badge-info">@(r.Rollo?.NumeroRollo ?? "—")</span></td>
+                    <td>@r.HoraInicio.ToString("HH:mm")</td>
+                    <td>@(r.HoraFin?.ToString("HH:mm") ?? "—")</td>
+                    <td><strong>@(r.CantidadUnidades?.ToString("N0") ?? "—")</strong></td>
+                    <td>@r.PesoDesperdicio.ToString("N3") kg</td>
+                </tr>
+            }
+            @if (!Model.Any())
+            {
+                <tr>
+                    <td colspan="8" style="text-align:center;padding:32px;color:var(--color-mid);">
+                        No hay registros para el filtro seleccionado.
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>

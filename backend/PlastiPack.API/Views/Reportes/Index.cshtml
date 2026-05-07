@@ -1,0 +1,79 @@
+@{
+    ViewData["Title"] = "Reportes";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="page-header">
+    <div class="page-header-left">
+        <div class="breadcrumb-custom"><a asp-controller="Home" asp-action="Index">Inicio</a> / Reportes</div>
+        <h1>Reportes</h1>
+        <p>Consulta el rendimiento de sellado y producción</p>
+    </div>
+</div>
+
+<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:20px;">
+
+    <a asp-action="PorTurno" style="text-decoration:none;">
+        <div class="card-custom" style="cursor:pointer;transition:box-shadow 0.15s;display:flex;flex-direction:column;gap:12px;"
+             onmouseover="this.style.boxShadow='0 4px 20px rgba(37,99,235,0.15)'"
+             onmouseout="this.style.boxShadow=''">
+            <div style="width:48px;height:48px;background:#EFF6FF;border-radius:12px;display:flex;align-items:center;justify-content:center;">
+                <i class="bi bi-calendar-day" style="font-size:24px;color:var(--color-primary);"></i>
+            </div>
+            <div>
+                <h3 style="font-size:var(--font-size-md);font-weight:600;color:var(--color-dark);margin-bottom:4px;">Reporte por Turno</h3>
+                <p style="font-size:var(--font-size-sm);color:var(--color-mid);">
+                    Producción diaria por selladora. Unidades selladas, desperdicio y operarios activos.
+                </p>
+            </div>
+            <div style="margin-top:auto;">
+                <span class="btn-primary-custom btn-sm-custom" style="pointer-events:none;">
+                    <i class="bi bi-arrow-right"></i> Ver reporte
+                </span>
+            </div>
+        </div>
+    </a>
+
+    <a asp-action="PorOperario" style="text-decoration:none;">
+        <div class="card-custom" style="cursor:pointer;transition:box-shadow 0.15s;display:flex;flex-direction:column;gap:12px;"
+             onmouseover="this.style.boxShadow='0 4px 20px rgba(37,99,235,0.15)'"
+             onmouseout="this.style.boxShadow=''">
+            <div style="width:48px;height:48px;background:#F0FDF4;border-radius:12px;display:flex;align-items:center;justify-content:center;">
+                <i class="bi bi-person-lines-fill" style="font-size:24px;color:#16A34A;"></i>
+            </div>
+            <div>
+                <h3 style="font-size:var(--font-size-md);font-weight:600;color:var(--color-dark);margin-bottom:4px;">Reporte por Operario</h3>
+                <p style="font-size:var(--font-size-sm);color:var(--color-mid);">
+                    Productividad individual. Cuántas unidades produjo cada operario en el día.
+                </p>
+            </div>
+            <div style="margin-top:auto;">
+                <span class="btn-primary-custom btn-sm-custom" style="pointer-events:none;background:#16A34A;">
+                    <i class="bi bi-arrow-right"></i> Ver reporte
+                </span>
+            </div>
+        </div>
+    </a>
+
+    <a asp-action="ProduccionGeneral" style="text-decoration:none;">
+        <div class="card-custom" style="cursor:pointer;transition:box-shadow 0.15s;display:flex;flex-direction:column;gap:12px;"
+             onmouseover="this.style.boxShadow='0 4px 20px rgba(37,99,235,0.15)'"
+             onmouseout="this.style.boxShadow=''">
+            <div style="width:48px;height:48px;background:#FFF7ED;border-radius:12px;display:flex;align-items:center;justify-content:center;">
+                <i class="bi bi-bar-chart-line-fill" style="font-size:24px;color:#D97706;"></i>
+            </div>
+            <div>
+                <h3 style="font-size:var(--font-size-md);font-weight:600;color:var(--color-dark);margin-bottom:4px;">Producción General</h3>
+                <p style="font-size:var(--font-size-sm);color:var(--color-mid);">
+                    Vista histórica por rango de fechas. Top referencias y tendencia diaria.
+                </p>
+            </div>
+            <div style="margin-top:auto;">
+                <span class="btn-primary-custom btn-sm-custom" style="pointer-events:none;background:#D97706;">
+                    <i class="bi bi-arrow-right"></i> Ver reporte
+                </span>
+            </div>
+        </div>
+    </a>
+
+</div>

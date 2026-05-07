@@ -1,0 +1,180 @@
+@{
+    ViewData["Title"] = "Nueva Planilla";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    var procesosSellado = (List<PlastiPack.API.Models.OrdenProceso>)ViewBag.ProcesosSellado;
+    var selladoras = (List<PlastiPack.API.Models.Selladora>)ViewBag.Selladoras;
+}
+
+<div class="page-header">
+    <div class="page-header-left">
+        <div class="breadcrumb-custom">
+            <a asp-controller="Home" asp-action="Index">Inicio</a> /
+            <a asp-action="Index">Planillas</a> / Nueva
+        </div>
+        <h1>Nueva Planilla de Sellado</h1>
+        <p>Asigna procesos de sellado a una selladora para el día</p>
+    </div>
+</div>
+
+<form asp-action="Crear" method="post">
+    @Html.AntiForgeryToken()
+
+    <div class="card-custom">
+        <div class="card-custom-title">Configuración de la Planilla</div>
+        <div class="form-grid-2">
+            <div class="form-group">
+                <label class="form-label-custom">Selladora *</label>
+                <select name="selladoaId" class="form-control-custom" required>
+                    <option value="">Seleccionar selladora…</option>
+                    @foreach (var s in selladoras)
+                    {
+                        <option value="@s.Id">@s.Nombre</option>
+                    }
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label-custom">Fecha *</label>
+                <input type="date" name="fecha" value="@ViewBag.FechaHoy"
+                       class="form-control-custom" required />
+            </div>
+        </div>
+    </div>
+
+    <div class="card-custom">
+        <div class="card-custom-title">
+            Procesos de Sellado Disponibles
+            <span style="font-size:var(--font-size-sm);font-weight:400;color:var(--color-mid);margin-left:8px;">
+                Selecciona los procesos para esta planilla
+            </span>
+        </div>
+
+        @if (!procesosSellado.Any())
+        {
+            <div class="alert-custom" style="background:#FFF7ED;color:#92400E;border:1px solid #FED7AA;">
+                <i class="bi bi-info-circle"></i>
+                No hay procesos de sellado pendientes. Primero crea órdenes de producción.
+            </div>
+        }
+        else
+        {
+            <div id="items-seleccionados" style="margin-bottom:16px;min-height:48px;border:2px dashed var(--color-border);border-radius:8px;padding:12px;display:flex;flex-wrap:wrap;gap:8px;align-items:center;">
+                <span id="placeholder-texto" style="color:var(--color-mid);font-size:var(--font-size-sm);">
+                    <i class="bi bi-arrow-down-circle"></i> Selecciona procesos de la tabla de abajo
+                </span>
+            </div>
+
+            <table class="table-custom">
+                <thead>
+                    <tr>
+                        <th style="width:48px;"></th>
+                        <th>Proceso #</th>
+                        <th>Orden</th>
+                        <th>Referencia</th>
+                        <th>Cantidad</th>
+                        <th>Cliente</th>
+                        <th>Estado</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var op in procesosSellado)
+                    {
+                        var ref_ = op.OrdenProduccion?.Referencia;
+                        var cliente = op.OrdenProduccion?.Pedido?.Cliente;
+                        <tr id="fila-@op.Id" style="cursor:pointer;" onclick="toggleProceso(@op.Id)">
+                            <td>
+                                <div id="check-@op.Id" style="width:20px;height:20px;border:2px solid var(--color-border);border-radius:4px;display:flex;align-items:center;justify-content:center;"></div>
+                            </td>
+                            <td><strong>#@op.Id</strong></td>
+                            <td>Orden #@op.OrdenProduccionId</td>
+                            <td>
+                                <strong>@(ref_?.Codigo ?? "—")</strong>
+                                @if (!string.IsNullOrEmpty(ref_?.Nombre))
+                                {
+                                    <br /><small style="color:var(--color-mid)">@ref_.Nombre</small>
+                                }
+                            </td>
+                            <td>@(op.OrdenProduccion?.CantidadRequerida.ToString("N0") ?? "—")</td>
+                            <td>@(cliente?.Nombre ?? "Interno")</td>
+                            <td>
+                                <span class="@(op.Estado == "en_proceso" ? "badge-info" : "badge-warning")">
+                                    @op.Estado
+                                </span>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+
+        <div id="inputs-hidden"></div>
+    </div>
+
+    <div style="display:flex;gap:12px;justify-content:flex-end;">
+        <a asp-action="Index" class="btn-secondary-custom">
+            <i class="bi bi-x-lg"></i> Cancelar
+        </a>
+        <button type="submit" class="btn-primary-custom" id="btn-crear" disabled>
+            <i class="bi bi-clipboard-plus"></i> Crear Planilla
+        </button>
+    </div>
+</form>
+
+@section Scripts {
+<script>
+    const seleccionados = new Set();
+
+    function toggleProceso(id) {
+        const fila  = document.getElementById('fila-'  + id);
+        const check = document.getElementById('check-' + id);
+
+        if (seleccionados.has(id)) {
+            seleccionados.delete(id);
+            fila.style.backgroundColor  = '';
+            check.innerHTML             = '';
+            check.style.borderColor     = 'var(--color-border)';
+            check.style.backgroundColor = '';
+        } else {
+            seleccionados.add(id);
+            fila.style.backgroundColor  = '#EFF6FF';
+            check.innerHTML             = '<i class="bi bi-check2" style="color:var(--color-primary);font-size:13px;"></i>';
+            check.style.borderColor     = 'var(--color-primary)';
+            check.style.backgroundColor = '#EFF6FF';
+        }
+        actualizarResumen();
+    }
+
+    function actualizarResumen() {
+        const container  = document.getElementById('items-seleccionados');
+        const inputsDiv  = document.getElementById('inputs-hidden');
+        const btnCrear   = document.getElementById('btn-crear');
+
+        inputsDiv.innerHTML  = '';
+        container.innerHTML  = '';
+
+        if (seleccionados.size === 0) {
+            const s = document.createElement('span');
+            s.style.cssText = 'color:var(--color-mid);font-size:var(--font-size-sm);';
+            s.innerHTML = '<i class="bi bi-arrow-down-circle"></i> Selecciona procesos de la tabla de abajo';
+            container.appendChild(s);
+            btnCrear.disabled = true;
+            return;
+        }
+
+        seleccionados.forEach(id => {
+            const badge = document.createElement('span');
+            badge.className = 'badge-info';
+            badge.style.cssText = 'display:inline-flex;align-items:center;gap:4px;cursor:pointer;';
+            badge.innerHTML = `Proceso #${id} <i class="bi bi-x" onclick="toggleProceso(${id})"></i>`;
+            container.appendChild(badge);
+
+            const input   = document.createElement('input');
+            input.type    = 'hidden';
+            input.name    = 'procesosIds';
+            input.value   = id;
+            inputsDiv.appendChild(input);
+        });
+
+        btnCrear.disabled = false;
+    }
+</script>
+}

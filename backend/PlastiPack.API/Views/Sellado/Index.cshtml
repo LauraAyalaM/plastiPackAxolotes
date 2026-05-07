@@ -1,0 +1,88 @@
+@model IEnumerable<PlastiPack.API.Models.PlanillaItem>
+@{
+    ViewData["Title"] = "Registro de Sellado";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+
+    string BadgeItem(string e) => e switch {
+        "pendiente"  => "badge-warning",
+        "en_proceso" => "badge-info",
+        "completado" => "badge-success",
+        _            => "badge-warning"
+    };
+}
+
+<div class="page-header">
+    <div class="page-header-left">
+        <div class="breadcrumb-custom"><a asp-controller="Home" asp-action="Index">Inicio</a> / Sellado</div>
+        <h1>Registro de Sellado</h1>
+        <p>Ítems asignados hoy — @DateTime.Today.ToString("dd/MM/yyyy")</p>
+    </div>
+    <a asp-action="MisRegistros" class="btn-secondary-custom">
+        <i class="bi bi-clock-history"></i> Mis Registros
+    </a>
+</div>
+
+@if (!Model.Any())
+{
+    <div class="card-custom" style="text-align:center;padding:48px;">
+        <i class="bi bi-clipboard-x" style="font-size:48px;color:var(--color-mid);display:block;margin-bottom:16px;"></i>
+        <h3 style="color:var(--color-dark);margin-bottom:8px;">Sin ítems asignados hoy</h3>
+        <p style="color:var(--color-mid);">El jefe de producción aún no ha creado planillas para hoy o todos los ítems están completados.</p>
+    </div>
+}
+else
+{
+    @foreach (var g in Model.GroupBy(i => i.Planilla?.Selladora?.Nombre ?? "—"))
+    {
+        <div class="card-custom">
+            <div class="card-custom-title">
+                <i class="bi bi-tools" style="color:var(--color-primary)"></i>
+                @g.Key
+            </div>
+            <table class="table-custom">
+                <thead>
+                    <tr>
+                        <th>Pos.</th>
+                        <th>Referencia</th>
+                        <th>Cantidad</th>
+                        <th>Estado</th>
+                        <th>Registros hoy</th>
+                        <th>Unidades reg.</th>
+                        <th>Acción</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in g.OrderBy(i => i.Posicion))
+                    {
+                        var ref_        = item.OrdenProceso?.OrdenProduccion?.Referencia;
+                        var unidadesReg = item.Registros.Sum(r => r.CantidadUnidades ?? 0);
+                        <tr>
+                            <td>
+                                <span style="background:var(--color-primary);color:#fff;border-radius:50%;width:24px;height:24px;display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;">
+                                    @item.Posicion
+                                </span>
+                            </td>
+                            <td>
+                                <strong>@(ref_?.Codigo ?? "—")</strong>
+                                @if (!string.IsNullOrEmpty(ref_?.Nombre))
+                                {
+                                    <br /><small style="color:var(--color-mid)">@ref_.Nombre</small>
+                                }
+                            </td>
+                            <td>@(item.OrdenProceso?.OrdenProduccion?.CantidadRequerida.ToString("N0") ?? "—")</td>
+                            <td><span class="@BadgeItem(item.Estado)">@item.Estado</span></td>
+                            <td>@item.Registros.Count</td>
+                            <td><strong>@unidadesReg.ToString("N0")</strong></td>
+                            <td>
+                                <a asp-action="Registrar" asp-route-id="@item.Id"
+                                   class="btn-primary-custom btn-sm-custom">
+                                    <i class="bi bi-pencil-square"></i> Registrar
+                                </a>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+}

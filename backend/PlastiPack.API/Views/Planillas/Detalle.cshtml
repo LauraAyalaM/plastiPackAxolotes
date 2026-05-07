@@ -1,0 +1,160 @@
+@model PlastiPack.API.Models.Planilla
+@{
+    ViewData["Title"] = $"Planilla #{Model.Id}";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+
+    string BadgeItem(string e) => e switch {
+        "pendiente"  => "badge-warning",
+        "en_proceso" => "badge-info",
+        "completado" => "badge-success",
+        _            => "badge-warning"
+    };
+}
+
+<div class="page-header">
+    <div class="page-header-left">
+        <div class="breadcrumb-custom">
+            <a asp-controller="Home" asp-action="Index">Inicio</a> /
+            <a asp-action="Index">Planillas</a> / #@Model.Id
+        </div>
+        <h1>Planilla #@Model.Id — @(Model.Selladora?.Nombre)</h1>
+        <p>@Model.Fecha.ToString("dd/MM/yyyy")</p>
+    </div>
+    <a asp-action="Index" class="btn-secondary-custom">
+        <i class="bi bi-arrow-left"></i> Volver
+    </a>
+</div>
+
+@{
+    var completados   = Model.Items.Count(i => i.Estado == "completado");
+    var totalUnidades = Model.Items.SelectMany(i => i.Registros).Sum(r => r.CantidadUnidades ?? 0);
+    var totalDesper   = Model.Items.SelectMany(i => i.Registros).Sum(r => r.PesoDesperdicio);
+}
+
+<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px;">
+    <div class="card-custom" style="margin-bottom:0;text-align:center;">
+        <div style="font-size:28px;font-weight:700;color:var(--color-dark);">@Model.Items.Count</div>
+        <div style="font-size:var(--font-size-sm);color:var(--color-mid);">Total ítems</div>
+    </div>
+    <div class="card-custom" style="margin-bottom:0;text-align:center;">
+        <div style="font-size:28px;font-weight:700;color:#16A34A;">@completados</div>
+        <div style="font-size:var(--font-size-sm);color:var(--color-mid);">Completados</div>
+    </div>
+    <div class="card-custom" style="margin-bottom:0;text-align:center;">
+        <div style="font-size:28px;font-weight:700;color:var(--color-primary);">@totalUnidades.ToString("N0")</div>
+        <div style="font-size:var(--font-size-sm);color:var(--color-mid);">Unidades selladas</div>
+    </div>
+    <div class="card-custom" style="margin-bottom:0;text-align:center;">
+        <div style="font-size:28px;font-weight:700;color:#D97706;">@totalDesper.ToString("N3") kg</div>
+        <div style="font-size:var(--font-size-sm);color:var(--color-mid);">Desperdicio total</div>
+    </div>
+</div>
+
+<div class="card-custom">
+    <div class="card-custom-title">Ítems de la Planilla</div>
+
+    @if (!Model.Items.Any())
+    {
+        <p style="text-align:center;color:var(--color-mid);padding:32px;">Esta planilla no tiene ítems.</p>
+    }
+
+    @foreach (var item in Model.Items.OrderBy(i => i.Posicion))
+    {
+        var ref_      = item.OrdenProceso?.OrdenProduccion?.Referencia;
+        var registros = item.Registros.OrderBy(r => r.HoraInicio).ToList();
+
+        <div style="border:1px solid var(--color-border);border-radius:8px;margin-bottom:16px;overflow:hidden;">
+            <div style="padding:16px;background:var(--color-surface);display:flex;justify-content:space-between;align-items:center;">
+                <div style="display:flex;align-items:center;gap:12px;">
+                    <span style="background:var(--color-primary);color:#fff;border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:var(--font-size-sm);">
+                        @item.Posicion
+                    </span>
+                    <div>
+                        <strong>@(ref_?.Codigo ?? "—")</strong>
+                        @if (!string.IsNullOrEmpty(ref_?.Nombre))
+                        {
+                            <span style="color:var(--color-mid);font-size:var(--font-size-sm);margin-left:8px;">@ref_.Nombre</span>
+                        }
+                        <br />
+                        <span style="font-size:var(--font-size-xs);color:var(--color-mid);">
+                            Proceso #@item.OrdenProcesoId · Orden #@(item.OrdenProceso?.OrdenProduccionId)
+                            · Qty: @(item.OrdenProceso?.OrdenProduccion?.CantidadRequerida.ToString("N0"))
+                        </span>
+                    </div>
+                </div>
+                <div style="display:flex;align-items:center;gap:8px;">
+                    <span class="@BadgeItem(item.Estado)">@item.Estado</span>
+
+                    @if (User.IsInRole("jefe_produccion") && item.Estado != "completado")
+                    {
+                        <form asp-controller="Planillas" asp-action="ActualizarItem" method="post" style="margin:0;">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="itemId" value="@item.Id" />
+                            @if (item.Estado == "pendiente")
+                            {
+                                <input type="hidden" name="nuevoEstado" value="en_proceso" />
+                                <button type="submit" class="btn-primary-custom btn-sm-custom">
+                                    <i class="bi bi-play-fill"></i> Iniciar
+                                </button>
+                            }
+                            else if (item.Estado == "en_proceso")
+                            {
+                                <input type="hidden" name="nuevoEstado" value="completado" />
+                                <button type="submit" class="btn-secondary-custom btn-sm-custom">
+                                    <i class="bi bi-check2-circle"></i> Completar
+                                </button>
+                            }
+                        </form>
+                    }
+
+                    @if ((User.IsInRole("operario") || User.IsInRole("jefe_produccion")) && item.Estado != "completado")
+                    {
+                        <a asp-controller="Sellado" asp-action="Registrar" asp-route-id="@item.Id"
+                           class="btn-primary-custom btn-sm-custom">
+                            <i class="bi bi-pencil-square"></i> Registrar
+                        </a>
+                    }
+                </div>
+            </div>
+
+            @if (registros.Any())
+            {
+                <div style="padding:0 16px 16px;">
+                    <table class="table-custom" style="margin-top:12px;">
+                        <thead>
+                            <tr>
+                                <th>Operario</th>
+                                <th>Rollo</th>
+                                <th>Inicio</th>
+                                <th>Fin</th>
+                                <th>Unidades</th>
+                                <th>Desperdicio</th>
+                                <th>Observaciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var r in registros)
+                            {
+                                <tr>
+                                    <td>@(r.Operario?.Nombre ?? "—")</td>
+                                    <td><span class="badge-info">@(r.Rollo?.NumeroRollo ?? "—")</span></td>
+                                    <td>@r.HoraInicio.ToString("HH:mm")</td>
+                                    <td>@(r.HoraFin?.ToString("HH:mm") ?? "—")</td>
+                                    <td><strong>@(r.CantidadUnidades?.ToString("N0") ?? "—")</strong></td>
+                                    <td>@r.PesoDesperdicio.ToString("N3") kg</td>
+                                    <td style="font-size:var(--font-size-xs);color:var(--color-mid);">@(r.Observaciones ?? "—")</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+            else
+            {
+                <div style="padding:12px 16px;font-size:var(--font-size-sm);color:var(--color-mid);">
+                    Sin registros aún.
+                </div>
+            }
+        </div>
+    }
+</div>

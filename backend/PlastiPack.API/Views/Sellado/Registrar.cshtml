@@ -1,0 +1,114 @@
+@model PlastiPack.API.Models.PlanillaItem
+@{
+    ViewData["Title"] = "Registrar Sellado";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    var rollos     = (List<PlastiPack.API.Models.Rollo>)ViewBag.Rollos;
+    var ref_       = Model.OrdenProceso?.OrdenProduccion?.Referencia;
+    var horaActual = DateTime.Now.ToString("HH:mm");
+}
+
+<div class="page-header">
+    <div class="page-header-left">
+        <div class="breadcrumb-custom">
+            <a asp-controller="Home" asp-action="Index">Inicio</a> /
+            <a asp-action="Index">Sellado</a> / Registrar
+        </div>
+        <h1>Registrar Producción</h1>
+        <p>Planilla #@Model.PlanillaId · @(Model.Planilla?.Selladora?.Nombre) · Posición @Model.Posicion</p>
+    </div>
+</div>
+
+<div class="card-custom" style="background:linear-gradient(135deg,#EFF6FF 0%,#F0FDF4 100%);border-color:var(--color-primary);">
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;">
+        <div>
+            <div style="font-size:var(--font-size-xs);color:var(--color-mid);text-transform:uppercase;font-weight:600;margin-bottom:4px;">Referencia</div>
+            <div style="font-size:var(--font-size-md);font-weight:700;color:var(--color-dark);">@(ref_?.Codigo ?? "—")</div>
+            <div style="font-size:var(--font-size-sm);color:var(--color-mid);">@(ref_?.Nombre ?? "")</div>
+        </div>
+        <div>
+            <div style="font-size:var(--font-size-xs);color:var(--color-mid);text-transform:uppercase;font-weight:600;margin-bottom:4px;">Cantidad Requerida</div>
+            <div style="font-size:var(--font-size-md);font-weight:700;color:var(--color-dark);">
+                @(Model.OrdenProceso?.OrdenProduccion?.CantidadRequerida.ToString("N0") ?? "—")
+            </div>
+        </div>
+        <div>
+            <div style="font-size:var(--font-size-xs);color:var(--color-mid);text-transform:uppercase;font-weight:600;margin-bottom:4px;">Selladora</div>
+            <div style="font-size:var(--font-size-md);font-weight:700;color:var(--color-dark);">
+                @(Model.Planilla?.Selladora?.Nombre ?? "—")
+            </div>
+        </div>
+    </div>
+</div>
+
+<form asp-action="Registrar" method="post">
+    @Html.AntiForgeryToken()
+    <input type="hidden" name="planillaItemId" value="@Model.Id" />
+
+    <div class="card-custom">
+        <div class="card-custom-title">Datos del Registro</div>
+
+        <div class="form-grid-2">
+            <div class="form-group">
+                <label class="form-label-custom">Rollo utilizado *</label>
+                @if (!rollos.Any())
+                {
+                    <div class="alert-custom" style="background:#FFF7ED;color:#92400E;border:1px solid #FED7AA;margin-bottom:8px;">
+                        <i class="bi bi-exclamation-triangle"></i>
+                        No hay rollos disponibles para esta referencia.
+                    </div>
+                    <select name="rolloId" class="form-control-custom" disabled>
+                        <option>Sin rollos disponibles</option>
+                    </select>
+                }
+                else
+                {
+                    <select name="rolloId" class="form-control-custom" required>
+                        <option value="">Seleccionar rollo…</option>
+                        @foreach (var r in rollos)
+                        {
+                            <option value="@r.Id">
+                                @r.NumeroRollo
+                                @if (r.PesoKg.HasValue) { <text>— @r.PesoKg.Value.ToString("N3") kg</text> }
+                                (@r.Estado)
+                            </option>
+                        }
+                    </select>
+                }
+            </div>
+            <div class="form-group">
+                <!-- espacio -->
+            </div>
+            <div class="form-group">
+                <label class="form-label-custom">Hora inicio *</label>
+                <input type="time" name="horaInicio" value="@horaActual" class="form-control-custom" required />
+            </div>
+            <div class="form-group">
+                <label class="form-label-custom">Hora fin <span style="font-weight:400;color:var(--color-mid)">(opcional)</span></label>
+                <input type="time" name="horaFin" class="form-control-custom" />
+            </div>
+            <div class="form-group">
+                <label class="form-label-custom">Unidades producidas</label>
+                <input type="number" name="cantidadUnidades" min="0" placeholder="0" class="form-control-custom" />
+            </div>
+            <div class="form-group">
+                <label class="form-label-custom">Peso desperdicio (kg)</label>
+                <input type="number" name="pesoDesperdicio" step="0.001" min="0" value="0" class="form-control-custom" />
+            </div>
+        </div>
+
+        <div class="form-group" style="margin-top:16px;">
+            <label class="form-label-custom">Observaciones</label>
+            <textarea name="observaciones" rows="3" placeholder="Notas adicionales…"
+                      class="form-control-custom" style="resize:vertical;"></textarea>
+        </div>
+    </div>
+
+    <div style="display:flex;gap:12px;justify-content:flex-end;">
+        <a asp-action="Index" class="btn-secondary-custom">
+            <i class="bi bi-x-lg"></i> Cancelar
+        </a>
+        <button type="submit" class="btn-primary-custom" @(!rollos.Any() ? "disabled" : "")>
+            <i class="bi bi-floppy2-fill"></i> Guardar Registro
+        </button>
+    </div>
+</form>
