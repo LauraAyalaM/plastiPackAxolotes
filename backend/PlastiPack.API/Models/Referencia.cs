@@ -10,6 +10,9 @@ namespace PlastiPack.API.Models
         [Column("id")]
         public int Id { get; set; }
 
+        [Column("requiere_refilado")]
+public bool RequiereRefilado { get; set; } = false;
+
         [Column("codigo")]
         public string Codigo { get; set; } = string.Empty;
 

@@ -15,5 +15,7 @@ namespace PlastiPack.API.Models
 
         [Column("activa")]
         public bool Activa { get; set; } = true;
+        public ICollection<Planilla> Planillas { get; set; } = new List<Planilla>();
+
     }
 }

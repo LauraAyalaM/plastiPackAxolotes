@@ -121,18 +121,19 @@
                                 default: @r.MateriaPrima break;
                             }
                         </td>
-                        <td>
-                            @if (r.Inventario != null)
-                            {
-                                <span class="@(r.Inventario.StockDisponible > 0 ? "badge-success" : "badge-danger")">
-                                    @r.Inventario.StockDisponible
-                                </span>
-                            }
-                            else
-                            {
-                                <span class="badge-warning">Sin inv.</span>
-                            }
-                        </td>
+                       <td>
+    @if (r.Inventario != null)
+    {
+        var disponible = r.Inventario.StockDisponible - r.Inventario.StockReservado;
+        <span class="@(disponible > 0 ? "badge-success" : "badge-danger")">
+            @disponible
+        </span>
+    }
+    else
+    {
+        <span class="badge-warning">Sin inv.</span>
+    }
+</td>
                         <td>
                             <span class="@(r.Estado == "Activo" ? "badge-success" : "badge-danger")">
                                 @r.Estado

@@ -150,6 +150,14 @@
                 <input asp-for="ColoresImpresion" class="form-control-custom"/>
             </div>
             <div class="form-group">
+                <label class="form-label-custom">¿Requiere Refilado?</label>
+                <select asp-for="RequiereRefilado" class="form-control-custom">
+                    <option value="false">No</option>
+                    <option value="true">Sí</option>
+                </select>
+            </div>
+
+            <div class="form-group">
                 <label class="form-label-custom">Tipo de Sellado</label>
                 <select asp-for="TipoSellado" class="form-control-custom">
                     <option value="">Seleccionar...</option>

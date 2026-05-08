@@ -88,7 +88,7 @@
                 {
                     <tr>
                         <td><strong>#@p.Id</strong></td>
-                        <td>@(p.Cliente?.Nombre ?? "— Interno —")</td>
+                        <td>@(p.Cliente?.Nombre ?? "PlastiPack")</td>
                         <td>@(p.Vendedor?.Nombre ?? "—")</td>
                         <td>
                             <span class="badge-custom @(p.Destino == "interno" ? "badge-info" : "badge-neutral")">
@@ -115,15 +115,6 @@
                                 class="btn-secondary-custom btn-sm-custom" title="Ver detalle">
                                     <i class="bi bi-eye"></i> Ver
                                 </a>
-                                @if (User.IsInRole("jefe_produccion") &&
-                                    (p.Estado == "pendiente" || p.Estado == "en_produccion"))
-                                {
-                                    <a asp-controller="OrdenesProduccion" asp-action="Crear"
-                                    asp-route-pedidoId="@p.Id"
-                                    class="btn-primary-custom btn-sm-custom" title="Crear orden de producción">
-                                        <i class="bi bi-gear"></i> Producción
-                                    </a>
-                                }
                             </div>
                         </td>
                     </tr>

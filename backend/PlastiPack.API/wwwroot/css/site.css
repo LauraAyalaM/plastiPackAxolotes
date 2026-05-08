@@ -21,14 +21,21 @@ body {
 .sidebar {
   width: var(--sidebar-width);
   background-color: var(--color-dark);
-  min-height: 100vh;
+  height: 100vh;           /* ← cambia min-height por height */
   position: fixed;
   left: 0;
   top: 0;
   display: flex;
   flex-direction: column;
-  padding: 24px 16px;
+  padding: 0;              /* ← quita el padding general */
   z-index: 100;
+}
+
+.sidebar-nav {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 24px 16px 8px 16px;  /* el padding que tenías antes */
 }
 
 .sidebar-logo {
@@ -401,20 +408,13 @@ body {
    SIDEBAR FOOTER — usuario + cerrar sesión
    ============================================= */
 
-/* El sidebar necesita flex column para que el footer quede pegado abajo */
-.sidebar {
-    display: flex;
-    flex-direction: column;
-}
-
-/* Empuja el footer al fondo */
 .sidebar-footer {
-    margin-top: auto;
-    padding: 12px 12px 16px;
-    border-top: 1px solid var(--color-border);
+    flex-shrink: 0;
+    padding: 12px 16px 20px;
+    border-top: 1px solid rgba(255,255,255,0.06);
 }
 
-/* Tarjeta del usuario */
+/* Fila del usuario */
 .sidebar-user {
     display: flex;
     align-items: center;
@@ -422,19 +422,18 @@ body {
     padding: 10px 8px;
     border-radius: 8px;
     margin-bottom: 6px;
-    background: var(--color-light);
 }
 
 .sidebar-user-avatar {
-    width: 34px;
-    height: 34px;
+    width: 32px;
+    height: 32px;
     border-radius: 50%;
-    background: var(--color-primary);
-    color: #ffffff;
+    background-color: rgba(255,255,255,0.08);
+    color: #94A3B8;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 16px;
+    font-size: 15px;
     flex-shrink: 0;
 }
 
@@ -444,18 +443,10 @@ body {
     overflow: hidden;
 }
 
-.sidebar-user-name {
-    font-size: 13px;
-    font-weight: 600;
-    color: var(--color-dark);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
 .sidebar-user-role {
-    font-size: 11px;
-    color: var(--color-mid);
+    font-size: 12px;
+    font-weight: 500;
+    color: #94A3B8;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -469,21 +460,20 @@ body {
     gap: 8px;
     padding: 9px 12px;
     border-radius: 8px;
-    border: 1px solid var(--color-border);
-    background: transparent;
-    color: var(--color-mid);
+    border: none;
+    background: rgba(255,255,255,0.04);
+    color: #64748B;
     font-size: 13px;
     font-weight: 500;
     font-family: var(--font-family);
     cursor: pointer;
-    transition: background 0.15s, color 0.15s, border-color 0.15s;
+    transition: background 0.15s, color 0.15s;
     text-align: left;
 }
 
 .btn-logout:hover {
-    background: var(--badge-danger-bg);
-    color: var(--badge-danger-text);
-    border-color: var(--badge-danger-text);
+    background: rgba(239,68,68,0.12);
+    color: #F87171;
 }
 
 .btn-logout i {

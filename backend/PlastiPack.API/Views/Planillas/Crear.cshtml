@@ -24,8 +24,7 @@
         <div class="form-grid-2">
             <div class="form-group">
                 <label class="form-label-custom">Selladora *</label>
-                <select name="selladoaId" class="form-control-custom" required>
-                    <option value="">Seleccionar selladora…</option>
+                <select name="selladoraId" class="form-control-custom" required>                    <option value="">Seleccionar selladora…</option>
                     @foreach (var s in selladoras)
                     {
                         <option value="@s.Id">@s.Nombre</option>
@@ -52,7 +51,7 @@
         {
             <div class="alert-custom" style="background:#FFF7ED;color:#92400E;border:1px solid #FED7AA;">
                 <i class="bi bi-info-circle"></i>
-                No hay procesos de sellado pendientes. Primero crea órdenes de producción.
+                No hay procesos de sellado disponibles. Las órdenes deben completar sus procesos previos antes de pasar a sellado.
             </div>
         }
         else

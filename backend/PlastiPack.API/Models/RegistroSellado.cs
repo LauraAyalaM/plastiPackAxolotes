@@ -22,11 +22,9 @@ namespace PlastiPack.API.Models
         [ForeignKey("OperarioId")]
         public Usuario? Operario { get; set; }
 
-        [Column("rollo_id")]
-        public int RolloId { get; set; }
-
-        [ForeignKey("RolloId")]
-        public Rollo? Rollo { get; set; }
+        // ← Reemplaza RolloId/Rollo por texto libre
+        [Column("numero_rollo")]
+        public string? NumeroRollo { get; set; }
 
         [Column("hora_inicio")]
         public TimeOnly HoraInicio { get; set; }

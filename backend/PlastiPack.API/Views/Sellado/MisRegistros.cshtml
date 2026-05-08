@@ -45,8 +45,7 @@
                     <td>@r.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy")</td>
                     <td>@(r.PlanillaItem?.Planilla?.Selladora?.Nombre ?? "—")</td>
                     <td><strong>@(r.PlanillaItem?.OrdenProceso?.OrdenProduccion?.Referencia?.Codigo ?? "—")</strong></td>
-                    <td><span class="badge-info">@(r.Rollo?.NumeroRollo ?? "—")</span></td>
-                    <td>@r.HoraInicio.ToString("HH:mm")</td>
+                    <td><span class="badge-info">@(r.NumeroRollo ?? "—")</span></td>                    <td>@r.HoraInicio.ToString("HH:mm")</td>
                     <td>@(r.HoraFin?.ToString("HH:mm") ?? "—")</td>
                     <td><strong>@(r.CantidadUnidades?.ToString("N0") ?? "—")</strong></td>
                     <td>@r.PesoDesperdicio.ToString("N3") kg</td>

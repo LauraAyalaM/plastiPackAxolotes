@@ -4,11 +4,25 @@
     Layout = "~/Views/Shared/_Layout.cshtml";
 
     string BadgeOrden(string estado) => estado switch {
-        "pendiente"   => "badge-warning",
-        "en_proceso"  => "badge-info",
-        "completada"  => "badge-success",
-        "cancelada"   => "badge-danger",
-        _             => "badge-warning"
+        "pendiente"    => "badge-warning",
+        "en_extrusion" => "badge-info",
+        "en_impresion" => "badge-info",
+        "en_refilado"  => "badge-info",
+        "en_sellado"   => "badge-info",
+        "completada"   => "badge-success",
+        "cancelada"    => "badge-danger",
+        _              => "badge-warning"
+    };
+
+    string LabelOrden(string estado) => estado switch {
+        "pendiente"    => "Pendiente",
+        "en_extrusion" => "En Extrusión",
+        "en_impresion" => "En Impresión",
+        "en_refilado"  => "En Refilado",
+        "en_sellado"   => "En Sellado",
+        "completada"   => "Completada",
+        "cancelada"    => "Cancelada",
+        _              => estado
     };
 }
 
@@ -18,12 +32,6 @@
         <h1>Órdenes de Producción</h1>
         <p>@ViewBag.Total orden(es) encontradas</p>
     </div>
-    @if (User.IsInRole("jefe_produccion"))
-    {
-        <a asp-action="Crear" class="btn-primary-custom">
-            <i class="bi bi-plus-lg"></i> Nueva Orden
-        </a>
-    }
 </div>
 
 <div class="card-custom">
@@ -32,9 +40,9 @@
                placeholder="Buscar por referencia o pedido…" class="form-control-custom" />
         <select name="estado" class="form-control-custom">
             <option value="">Todos los estados</option>
-            @foreach (var e in new[] { "pendiente","en_proceso","completada","cancelada" })
+            @foreach (var e in new[] { "pendiente", "en_extrusion", "en_impresion", "en_sellado", "completada", "cancelada" })
             {
-                <option value="@e" selected="@(ViewBag.Estado == e)">@e</option>
+                <option value="@e" selected="@(ViewBag.Estado == e)">@LabelOrden(e)</option>
             }
         </select>
         <button type="submit" class="btn-primary-custom">
@@ -63,7 +71,7 @@
                     <td>Pedido #@o.PedidoId</td>
                     <td>@(o.Referencia?.Codigo ?? "—")</td>
                     <td>@o.CantidadRequerida</td>
-                    <td><span class="@BadgeOrden(o.Estado)">@o.Estado</span></td>
+                    <td><span class="@BadgeOrden(o.Estado)">@LabelOrden(o.Estado)</span></td>
                     <td>@o.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy")</td>
                     <td>
                         <a asp-action="Detalle" asp-route-id="@o.Id"

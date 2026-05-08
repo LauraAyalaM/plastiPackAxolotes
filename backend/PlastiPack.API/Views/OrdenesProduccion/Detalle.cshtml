@@ -4,12 +4,27 @@
     Layout = "~/Views/Shared/_Layout.cshtml";
 
     string BadgeOrden(string e) => e switch {
-        "pendiente"  => "badge-warning",
-        "en_proceso" => "badge-info",
-        "completada" => "badge-success",
-        "cancelada"  => "badge-danger",
-        _            => "badge-warning"
+        "pendiente"    => "badge-warning",
+        "en_extrusion" => "badge-info",
+        "en_impresion" => "badge-info",
+        "en_refilado"  => "badge-info",
+        "en_sellado"   => "badge-info",
+        "completada"   => "badge-success",
+        "cancelada"    => "badge-danger",
+        _              => "badge-warning"
     };
+
+    string LabelOrden(string e) => e switch {
+        "pendiente"    => "Pendiente",
+        "en_extrusion" => "En Extrusión",
+        "en_impresion" => "En Impresión",
+        "en_refilado"  => "En Refilado", 
+        "en_sellado"   => "En Sellado",
+        "completada"   => "Completada",
+        "cancelada"    => "Cancelada",
+        _              => e
+    };
+
     string BadgeProceso(string e) => e switch {
         "pendiente"  => "badge-warning",
         "en_proceso" => "badge-info",
@@ -17,12 +32,29 @@
         "omitido"    => "badge-danger",
         _            => "badge-warning"
     };
+
+    string LabelProceso(string e) => e switch {
+        "pendiente"  => "Pendiente",
+        "en_proceso" => "En Proceso",
+        "completado" => "Completado",
+        "omitido"    => "Omitido",
+        _            => e
+    };
+
     string IconoProceso(string p) => p switch {
-        "extrusion"  => "bi-moisture",
-        "impresion"  => "bi-printer",
-        "refilado"   => "bi-scissors",
-        "sellado"    => "bi-wrench",
-        _            => "bi-gear"
+        "extrusion" => "bi-moisture",
+        "impresion" => "bi-printer",
+        "refilado"  => "bi-scissors",
+        "sellado"   => "bi-wrench",
+        _           => "bi-gear"
+    };
+
+    string LabelProcesNombre(string p) => p switch {
+        "extrusion" => "Extrusión",
+        "impresion" => "Impresión",
+        "refilado"  => "Refilado",
+        "sellado"   => "Sellado",
+        _           => p
     };
 }
 
@@ -36,7 +68,7 @@
         <p>Pedido #@Model.PedidoId — @(Model.Referencia?.Codigo ?? "—")</p>
     </div>
     <span class="@BadgeOrden(Model.Estado)" style="font-size:14px;padding:6px 16px;">
-        @Model.Estado
+        @LabelOrden(Model.Estado)
     </span>
 </div>
 
@@ -75,15 +107,19 @@
                         <i class="bi @IconoProceso(proc.NombreProceso)"></i>
                     </div>
                     <div style="flex:1;">
-                        <div style="font-weight:600;text-transform:capitalize;">@proc.NombreProceso</div>
+                        <div style="font-weight:600;">@LabelProcesNombre(proc.NombreProceso)</div>
                         <div style="font-size:12px;color:var(--color-mid);">
                             @if (proc.FechaInicio.HasValue)
-                            { <span>Inicio: @proc.FechaInicio.Value.ToLocalTime().ToString("dd/MM HH:mm")</span> }
+                            {
+                                <span>Inicio: @proc.FechaInicio.Value.ToLocalTime().ToString("dd/MM HH:mm")</span>
+                            }
                             @if (proc.FechaFin.HasValue)
-                            { <span> · Fin: @proc.FechaFin.Value.ToLocalTime().ToString("dd/MM HH:mm")</span> }
+                            {
+                                <span> · Fin: @proc.FechaFin.Value.ToLocalTime().ToString("dd/MM HH:mm")</span>
+                            }
                         </div>
                     </div>
-                    <span class="@BadgeProceso(proc.Estado)">@proc.Estado</span>
+                    <span class="@BadgeProceso(proc.Estado)">@LabelProceso(proc.Estado)</span>
 
                     @if (User.IsInRole("jefe_produccion") || User.IsInRole("operario"))
                     {
@@ -92,9 +128,9 @@
                             {
                                 <form asp-action="AvanzarProceso" method="post" style="margin:0">
                                     @Html.AntiForgeryToken()
-                                    <input type="hidden" name="ordenId"  value="@Model.Id" />
+                                    <input type="hidden" name="ordenId"   value="@Model.Id" />
                                     <input type="hidden" name="procesoId" value="@proc.Id" />
-                                    <input type="hidden" name="accion"   value="iniciar" />
+                                    <input type="hidden" name="accion"    value="iniciar" />
                                     <button type="submit" class="btn-primary-custom btn-sm-custom">
                                         <i class="bi bi-play-fill"></i> Iniciar
                                     </button>
@@ -103,9 +139,9 @@
                                 {
                                     <form asp-action="AvanzarProceso" method="post" style="margin:0">
                                         @Html.AntiForgeryToken()
-                                        <input type="hidden" name="ordenId"  value="@Model.Id" />
+                                        <input type="hidden" name="ordenId"   value="@Model.Id" />
                                         <input type="hidden" name="procesoId" value="@proc.Id" />
-                                        <input type="hidden" name="accion"   value="omitir" />
+                                        <input type="hidden" name="accion"    value="omitir" />
                                         <button type="submit" class="btn-secondary-custom btn-sm-custom">
                                             <i class="bi bi-skip-forward"></i> Omitir
                                         </button>
@@ -116,9 +152,9 @@
                             {
                                 <form asp-action="AvanzarProceso" method="post" style="margin:0">
                                     @Html.AntiForgeryToken()
-                                    <input type="hidden" name="ordenId"  value="@Model.Id" />
+                                    <input type="hidden" name="ordenId"   value="@Model.Id" />
                                     <input type="hidden" name="procesoId" value="@proc.Id" />
-                                    <input type="hidden" name="accion"   value="completar" />
+                                    <input type="hidden" name="accion"    value="completar" />
                                     <button type="submit" class="btn-primary-custom btn-sm-custom">
                                         <i class="bi bi-check-lg"></i> Completar
                                     </button>

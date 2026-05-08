@@ -21,11 +21,12 @@ namespace PlastiPack.API.Controllers
             return View();
         }
 
-        public async Task<IActionResult> PorTurno(string? fecha, int? selladoaId)
+        public async Task<IActionResult> PorTurno(string? fecha, int? selladoraId)
         {
+            // Planilla.Fecha es DateOnly → comparar con DateOnly
             var fechaFiltro = string.IsNullOrWhiteSpace(fecha)
-                ? DateTime.UtcNow.Date
-                : DateTime.SpecifyKind(DateTime.Parse(fecha).Date, DateTimeKind.Utc);
+                ? DateOnly.FromDateTime(DateTime.UtcNow)
+                : DateOnly.Parse(fecha);
 
             var query = _context.RegistrosSellado
                 .Include(r => r.PlanillaItem)
@@ -36,15 +37,14 @@ namespace PlastiPack.API.Controllers
                         .ThenInclude(op => op!.OrdenProduccion)
                             .ThenInclude(o => o!.Referencia)
                 .Include(r => r.Operario)
-                .Include(r => r.Rollo)
-                .Where(r => r.PlanillaItem!.Planilla!.Fecha.Date == fechaFiltro.Date)
+                .Where(r => r.PlanillaItem!.Planilla!.Fecha == fechaFiltro)   // ← .Date eliminado
                 .AsQueryable();
 
-            if (selladoaId.HasValue)
-                query = query.Where(r => r.PlanillaItem!.Planilla!.SelladroaId == selladoaId.Value);
+            if (selladoraId.HasValue)
+                query = query.Where(r => r.PlanillaItem!.Planilla!.SelladoraId == selladoraId.Value); // ← typo
 
             var registros = await query
-                .OrderBy(r => r.PlanillaItem!.Planilla!.SelladroaId)
+                .OrderBy(r => r.PlanillaItem!.Planilla!.SelladoraId)          // ← typo
                 .ThenBy(r => r.HoraInicio)
                 .ToListAsync();
 
@@ -58,11 +58,11 @@ namespace PlastiPack.API.Controllers
                     NumRegistros     = g.Count(),
                     Operarios        = g.Select(r => r.Operario?.Nombre).Distinct().ToList()
                 })
-                .ToList();
+                .ToList<dynamic>();
 
             ViewBag.FechaFiltro         = fechaFiltro.ToString("yyyy-MM-dd");
             ViewBag.FechaDisplay        = fechaFiltro.ToString("dd/MM/yyyy");
-            ViewBag.SelladoraId         = selladoaId;
+            ViewBag.SelladoraId         = selladoraId;
             ViewBag.Selladoras          = await _context.Selladoras.Where(s => s.Activa).OrderBy(s => s.Id).ToListAsync();
             ViewBag.ResumenPorSelladora = resumenPorSelladora;
             ViewBag.TotalUnidades       = registros.Sum(r => r.CantidadUnidades ?? 0);
@@ -74,8 +74,8 @@ namespace PlastiPack.API.Controllers
         public async Task<IActionResult> PorOperario(string? fecha, Guid? operarioId)
         {
             var fechaFiltro = string.IsNullOrWhiteSpace(fecha)
-                ? DateTime.UtcNow.Date
-                : DateTime.SpecifyKind(DateTime.Parse(fecha).Date, DateTimeKind.Utc);
+                ? DateOnly.FromDateTime(DateTime.UtcNow)
+                : DateOnly.Parse(fecha);
 
             var query = _context.RegistrosSellado
                 .Include(r => r.PlanillaItem)
@@ -86,8 +86,7 @@ namespace PlastiPack.API.Controllers
                         .ThenInclude(op => op!.OrdenProduccion)
                             .ThenInclude(o => o!.Referencia)
                 .Include(r => r.Operario)
-                .Include(r => r.Rollo)
-                .Where(r => r.PlanillaItem!.Planilla!.Fecha.Date == fechaFiltro.Date)
+                .Where(r => r.PlanillaItem!.Planilla!.Fecha == fechaFiltro)   // ← .Date eliminado
                 .AsQueryable();
 
             if (operarioId.HasValue)
@@ -107,10 +106,10 @@ namespace PlastiPack.API.Controllers
                     TotalUnidades    = g.Sum(r => r.CantidadUnidades ?? 0),
                     TotalDesperdicio = g.Sum(r => r.PesoDesperdicio),
                     NumRegistros     = g.Count(),
-                    Rollos           = g.Select(r => r.Rollo?.NumeroRollo).Distinct().ToList()
+                    Rollos = g.Select(r => r.NumeroRollo).Distinct().ToList()
                 })
                 .OrderByDescending(x => x.TotalUnidades)
-                .ToList();
+                .ToList<dynamic>();
 
             var operarios = await _context.Usuarios
                 .Where(u => u.Rol != null && u.Rol.Nombre == "operario" && u.Activo)
@@ -131,11 +130,11 @@ namespace PlastiPack.API.Controllers
         public async Task<IActionResult> ProduccionGeneral(string? desde, string? hasta)
         {
             var fechaDesde = string.IsNullOrWhiteSpace(desde)
-                ? DateTime.UtcNow.Date.AddDays(-30)
-                : DateTime.SpecifyKind(DateTime.Parse(desde).Date, DateTimeKind.Utc);
+                ? DateOnly.FromDateTime(DateTime.UtcNow.AddDays(-30))
+                : DateOnly.Parse(desde);
             var fechaHasta = string.IsNullOrWhiteSpace(hasta)
-                ? DateTime.UtcNow.Date
-                : DateTime.SpecifyKind(DateTime.Parse(hasta).Date, DateTimeKind.Utc);
+                ? DateOnly.FromDateTime(DateTime.UtcNow)
+                : DateOnly.Parse(hasta);
 
             var registros = await _context.RegistrosSellado
                 .Include(r => r.PlanillaItem)
@@ -145,12 +144,12 @@ namespace PlastiPack.API.Controllers
                         .ThenInclude(op => op!.OrdenProduccion)
                             .ThenInclude(o => o!.Referencia)
                 .Include(r => r.Operario)
-                .Where(r => r.PlanillaItem!.Planilla!.Fecha.Date >= fechaDesde.Date
-                         && r.PlanillaItem!.Planilla!.Fecha.Date <= fechaHasta.Date)
+                .Where(r => r.PlanillaItem!.Planilla!.Fecha >= fechaDesde   // ← .Date eliminado
+                         && r.PlanillaItem!.Planilla!.Fecha <= fechaHasta)
                 .ToListAsync();
 
             var porDia = registros
-                .GroupBy(r => r.PlanillaItem!.Planilla!.Fecha.Date)
+                .GroupBy(r => r.PlanillaItem!.Planilla!.Fecha)              // ← .Date eliminado, ya es DateOnly
                 .Select(g => new
                 {
                     Fecha            = g.Key,

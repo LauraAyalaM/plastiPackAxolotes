@@ -118,5 +118,59 @@ namespace PlastiPack.API.Controllers
 
             return Json(rollos);
         }
+
+        [Authorize(Roles = "jefe_produccion,operario")]
+        public async Task<IActionResult> Crear(int? ordenId)
+        {
+            if (ordenId.HasValue)
+            {
+                var orden = await _context.OrdenesProduccion
+                    .Include(o => o.Referencia)
+                    .FirstOrDefaultAsync(o => o.Id == ordenId.Value);
+
+                if (orden != null)
+                {
+                    ViewBag.OrdenId      = orden.Id;
+                    ViewBag.ReferenciaId = orden.ReferenciaId;
+                    ViewBag.ReferenciaCodigo = orden.Referencia?.Codigo;
+                    ViewBag.ReferenciaNombre = orden.Referencia?.Nombre;
+                }
+            }
+
+            ViewData["ActivePage"] = "Rollos";
+            return View(new Rollo());
+        }
+
+        [HttpPost]
+        [Authorize(Roles = "jefe_produccion,operario")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Crear(Rollo model, int? ordenId)
+        {
+            var existe = await _context.Rollos
+                .AnyAsync(r => r.NumeroRollo == model.NumeroRollo);
+            if (existe)
+                ModelState.AddModelError("NumeroRollo", "Ya existe un rollo con ese número.");
+
+            if (!ModelState.IsValid)
+            {
+                ViewData["ActivePage"] = "Rollos";
+                return View(model);
+            }
+
+            model.Estado             = "disponible";
+            model.CreatedAt          = DateTime.UtcNow;
+            model.OrdenProduccionId  = ordenId;  // ← vincular a la orden
+
+            _context.Rollos.Add(model);
+            await _context.SaveChangesAsync();
+
+            TempData["Success"] = $"Rollo '{model.NumeroRollo}' registrado correctamente.";
+
+            // Si vino desde una orden, redirigir de vuelta a ella
+            if (ordenId.HasValue)
+                return RedirectToAction("Detalle", "OrdenesProduccion", new { id = ordenId.Value });
+
+            return RedirectToAction(nameof(Index));
+        }
     }
 }

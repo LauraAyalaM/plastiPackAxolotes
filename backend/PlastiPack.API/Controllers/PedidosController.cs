@@ -138,6 +138,8 @@ namespace PlastiPack.API.Controllers
                     "El pedido debe tener al menos un ítem.");
             }
 
+            
+
             // ── Validación: stock disponible ──
             var erroresStock = new List<string>();
             if (referenciaIds != null)
@@ -178,7 +180,7 @@ namespace PlastiPack.API.Controllers
                 System.Security.Claims.ClaimTypes.NameIdentifier)!.Value);
             model.VendedorId  = vendedorId;
             model.FechaCreacion = DateTime.UtcNow;
-            model.Estado      = "pendiente";
+            model.Estado      = "en_produccion";
             model.CreatedAt   = DateTime.UtcNow;
 
             // CONVERTIR A UTC
@@ -218,11 +220,77 @@ namespace PlastiPack.API.Controllers
                 }
             }
 
+            // Cargar las referencias de una sola vez para leer Impresion
+            var refs = await _context.Referencias
+                .Where(r => referenciaIds.Contains(r.Id))
+                .ToDictionaryAsync(r => r.Id);
+
+            var ordenesCreadas = new List<OrdenProduccion>();
+
+            for (int i = 0; i < referenciaIds.Count; i++)
+            {
+                var op = new OrdenProduccion
+                {
+                    PedidoId          = model.Id,
+                    ReferenciaId      = referenciaIds[i],
+                    CantidadRequerida = cantidades[i],
+                    Estado            = "pendiente",
+                    CreadoPor         = vendedorId,
+                    CreatedAt         = DateTime.UtcNow
+                };
+                _context.OrdenesProduccion.Add(op);
+                ordenesCreadas.Add(op);
+            }
+
+            // Un solo SaveChanges para obtener todos los IDs generados
+            await _context.SaveChangesAsync();
+
+            // Ahora crear los procesos con IDs ya disponibles
+            foreach (var op in ordenesCreadas)
+            {
+                var referencia = refs.GetValueOrDefault(op.ReferenciaId);
+                var sec = 1;
+
+                _context.OrdenProcesos.Add(new OrdenProceso {
+                    OrdenProduccionId = op.Id,
+                    NombreProceso     = "extrusion",
+                    Secuencia         = sec++,
+                    Estado            = "pendiente"
+                });
+
+                if (referencia?.Impresion == true)
+                {
+                    _context.OrdenProcesos.Add(new OrdenProceso {
+                        OrdenProduccionId = op.Id,
+                        NombreProceso     = "impresion",
+                        Secuencia         = sec++,
+                        Estado            = "pendiente"
+                    });
+                }
+
+                if (referencia?.RequiereRefilado == true)
+                {
+                    _context.OrdenProcesos.Add(new OrdenProceso {
+                        OrdenProduccionId = op.Id,
+                        NombreProceso     = "refilado",
+                        Secuencia         = sec++,
+                        Estado            = "pendiente"
+                    });
+                }
+
+                _context.OrdenProcesos.Add(new OrdenProceso {
+                    OrdenProduccionId = op.Id,
+                    NombreProceso     = "sellado",
+                    Secuencia         = sec,
+                    Estado            = "pendiente"
+                });
+            }
+
             // ── Historial ──
             _context.PedidoHistorial.Add(new PedidoHistorialEstado
             {
                 PedidoId    = model.Id,
-                EstadoNuevo = "pendiente",
+                EstadoNuevo = "en_produccion",
                 UsuarioId   = vendedorId,
                 Observacion = "Pedido creado"
             });
@@ -248,7 +316,7 @@ namespace PlastiPack.API.Controllers
                     System.Security.Claims.ClaimTypes.NameIdentifier)!.Value);
                 if (pedido.VendedorId != userId) return Forbid();
                 if (nuevoEstado != "cancelado")  return Forbid();
-                if (pedido.Estado != "pendiente")
+                if (pedido.Estado != "en_produccion")
                 {
                     TempData["Error"] = "Solo se pueden cancelar pedidos en estado pendiente.";
                     return RedirectToAction(nameof(Detalle), new { id });
@@ -275,6 +343,17 @@ namespace PlastiPack.API.Controllers
                         inv.UltimaActualizacion = DateTime.UtcNow;
                     }
                 }
+                 // Cancelar órdenes de producción activas
+                var ordenesActivas = await _context.OrdenesProduccion
+                .Where(o => o.PedidoId == id &&
+                            (o.Estado == "pendiente"    ||
+                            o.Estado == "en_extrusion" ||
+                            o.Estado == "en_impresion" ||
+                            o.Estado == "en_sellado"))   // ← ya no existe "en_proceso"
+                .ToListAsync();
+
+                foreach (var op in ordenesActivas)
+                    op.Estado = "cancelada";
             }
 
             var actorId = Guid.Parse(User.FindFirst(
@@ -291,22 +370,17 @@ namespace PlastiPack.API.Controllers
 
             await _context.SaveChangesAsync();
 
+            
+
             TempData["Success"] = $"Pedido #{id} pasó a '{nuevoEstado}'.";
             return RedirectToAction(nameof(Detalle), new { id });
         }
 
         // ── API: precio sugerido para referencia + cliente ──
         [HttpGet]
-        public async Task<IActionResult> PrecioSugerido(int referenciaId, int? clienteId)
+        public async Task<IActionResult> PrecioSugerido(int referenciaId, int? clienteId, string? destino)
         {
-            // Determina categoría según tipo de cliente
-            string categoria = "Lista";
-            if (clienteId.HasValue)
-            {
-                var cliente = await _context.Clientes.FindAsync(clienteId.Value);
-                if (cliente?.Tipo == "interno") categoria = "Mayorista";
-                else categoria = "Mostrador";
-            }
+            string categoria = destino == "externo" ? "Mostrador" : "Mayorista";
 
             var precio = await _context.PreciosReferencia
                 .Where(p => p.ReferenciaId == referenciaId && p.Categoria == categoria)

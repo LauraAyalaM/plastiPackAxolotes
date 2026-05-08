@@ -127,21 +127,35 @@
     <div class="card-custom">
         <p class="card-custom-title"><i class="bi bi-printer"></i> Impresión y Sellado</p>
         <div class="form-grid-3">
+
+            <!-- Trigger principal -->
             <div class="form-group">
                 <label class="form-label-custom">¿Tiene Impresión?</label>
-                <select asp-for="Impresion" class="form-control-custom">
+                <select id="selectImpresion" asp-for="Impresion" class="form-control-custom">
                     <option value="false">No</option>
                     <option value="true">Sí</option>
                 </select>
             </div>
-            <div class="form-group">
+
+            <!-- Campos que solo aparecen si Impresion = true -->
+            <div class="form-group campo-impresion" id="campoTipoImpresion" style="display:none">
                 <label class="form-label-custom">Tipo de Impresión</label>
                 <input asp-for="TipoImpresion" class="form-control-custom"/>
             </div>
-            <div class="form-group">
+            <div class="form-group campo-impresion" id="campoColoresImpresion" style="display:none">
                 <label class="form-label-custom">Colores de Impresión</label>
                 <input asp-for="ColoresImpresion" class="form-control-custom"/>
             </div>
+
+            <!-- Refilado -->
+            <div class="form-group">
+                <label class="form-label-custom">¿Requiere Refilado?</label>
+                <select asp-for="RequiereRefilado" class="form-control-custom">
+                    <option value="false">No</option>
+                    <option value="true">Sí</option>
+                </select>
+            </div>
+
             <div class="form-group">
                 <label class="form-label-custom">Tipo de Sellado</label>
                 <select asp-for="TipoSellado" class="form-control-custom">
@@ -206,3 +220,25 @@
     </div>
 
 </form>
+
+@section Scripts {
+<script>
+    const selectImpresion = document.getElementById('selectImpresion');
+    const camposImpresion = document.querySelectorAll('.campo-impresion');
+
+    function toggleImpresion() {
+        const tieneImpresion = selectImpresion.value === 'true';
+        camposImpresion.forEach(campo => {
+            campo.style.display = tieneImpresion ? '' : 'none';
+            // Limpiar valores al ocultar para no enviar datos fantasma
+            if (!tieneImpresion) {
+                campo.querySelectorAll('input, select').forEach(el => el.value = '');
+            }
+        });
+    }
+
+    // Ejecutar al cargar (por si hay valor previo al volver del servidor)
+    toggleImpresion();
+    selectImpresion.addEventListener('change', toggleImpresion);
+</script>
+}

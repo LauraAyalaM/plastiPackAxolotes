@@ -1,19 +1,182 @@
+@using System.Security.Claims
 @{
     ViewData["Title"] = "Dashboard";
     ViewData["ActivePage"] = "Dashboard";
+
+    var esJefe    = User.IsInRole("jefe_produccion");
+    var esVendedor = User.IsInRole("vendedor");
+    var esOperario = User.IsInRole("operario");
+
+    var nombreUsuario = User.FindFirst(ClaimTypes.Name)?.Value ?? "Usuario";
 }
 
 <div class="page-header">
     <div class="page-header-left">
         <p class="breadcrumb-custom">Inicio</p>
         <h1>Dashboard</h1>
-        <p>Bienvenido al sistema de gestión PlastiPack</p>
+        <p>Bienvenido, @nombreUsuario</p>
     </div>
 </div>
 
-<div class="card-custom">
-    <p class="card-custom-title">Estado del sistema</p>
-    <p style="color: var(--color-mid); font-size: var(--font-size-sm);">
-        El sistema está funcionando correctamente. Usa el menú lateral para navegar.
-    </p>
-</div>
+@* ══════════════════════════════════════════
+   JEFE DE PRODUCCIÓN
+══════════════════════════════════════════ *@
+@if (esJefe)
+{
+    <div class="form-grid-3" style="margin-bottom: 24px;">
+        <div class="card-custom" style="margin-bottom:0">
+            <p class="card-custom-title">Pedidos en producción</p>
+            <p style="font-size: 2rem; font-weight: 700; color: var(--color-primary);">
+                @ViewBag.TotalPedidosEnProduccion
+            </p>
+            <p style="font-size: var(--font-size-sm); color: var(--color-mid);">pedidos activos</p>
+        </div>
+        <div class="card-custom" style="margin-bottom:0">
+            <p class="card-custom-title">Órdenes pendientes</p>
+            <p style="font-size: 2rem; font-weight: 700; color: var(--color-primary);">
+                @ViewBag.TotalOrdenesPendientes
+            </p>
+            <p style="font-size: var(--font-size-sm); color: var(--color-mid);">sin asignar a selladora</p>
+        </div>
+        <div class="card-custom" style="margin-bottom:0">
+            <p class="card-custom-title">Selladoras activas hoy</p>
+            <p style="font-size: 2rem; font-weight: 700; color: var(--color-primary);">
+                @ViewBag.SelladoresConPlanillaHoy
+            </p>
+            <p style="font-size: var(--font-size-sm); color: var(--color-mid);">con planilla asignada</p>
+        </div>
+    </div>
+
+    <div class="form-grid-2">
+        <div class="card-custom" style="margin-bottom:0">
+            <p class="card-custom-title">Últimos pedidos recibidos</p>
+            @if (ViewBag.UltimosPedidos != null && ((List<PlastiPack.API.Models.Pedido>)ViewBag.UltimosPedidos).Any())
+            {
+                <table class="table-custom">
+                    <thead>
+                        <tr>
+                            <th># Pedido</th>
+                            <th>Cliente</th>
+                            <th>Fecha entrega</th>
+                            <th>Estado</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var p in (List<PlastiPack.API.Models.Pedido>)ViewBag.UltimosPedidos)
+                        {
+                            <tr>
+                                <td><a href="/Pedidos/Detalle/@p.Id">#@p.Id</a></td>
+                                <td>@(p.Cliente?.Nombre ?? "Interno")</td>
+                                <td>@p.FechaEntrega.ToString("dd/MM/yyyy")</td>
+                                <td><span class="badge-info">@p.Estado</span></td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            }
+            else
+            {
+                <p style="color: var(--color-mid); font-size: var(--font-size-sm);">No hay pedidos recientes.</p>
+            }
+        </div>
+
+        <div class="card-custom" style="margin-bottom:0">
+            <p class="card-custom-title">Órdenes por estado</p>
+            @foreach (var item in (Dictionary<string, int>)(ViewBag.OrdenesPorEstado ?? new Dictionary<string, int>()))
+            {
+                <div style="display:flex; justify-content:space-between; align-items:center; padding: 8px 0; border-bottom: 1px solid var(--color-border);">
+                    <span style="font-size: var(--font-size-sm); color: var(--color-mid);">@item.Key</span>
+                    <span style="font-weight: 600; color: var(--color-dark);">@item.Value</span>
+                </div>
+            }
+        </div>
+    </div>
+}
+
+@* ══════════════════════════════════════════
+   VENDEDOR
+══════════════════════════════════════════ *@
+@if (esVendedor)
+{
+    <div class="form-grid-2" style="margin-bottom: 24px;">
+        <div class="card-custom" style="margin-bottom:0">
+            <p class="card-custom-title">Mis pedidos activos</p>
+            <p style="font-size: 2rem; font-weight: 700; color: var(--color-primary);">
+                @ViewBag.MisPedidosActivos
+            </p>
+            <p style="font-size: var(--font-size-sm); color: var(--color-mid);">en producción</p>
+        </div>
+        <div class="card-custom" style="margin-bottom:0">
+            <p class="card-custom-title">Pedidos entregados este mes</p>
+            <p style="font-size: 2rem; font-weight: 700; color: var(--color-primary);">
+                @ViewBag.MisPedidosEntregadosMes
+            </p>
+            <p style="font-size: var(--font-size-sm); color: var(--color-mid);">este mes</p>
+        </div>
+    </div>
+
+    <div class="card-custom">
+        <p class="card-custom-title">Mis pedidos recientes</p>
+        @if (ViewBag.MisPedidosRecientes != null && ((List<PlastiPack.API.Models.Pedido>)ViewBag.MisPedidosRecientes).Any())
+        {
+            <table class="table-custom">
+                <thead>
+                    <tr>
+                        <th># Pedido</th>
+                        <th>Cliente</th>
+                        <th>Fecha entrega</th>
+                        <th>Estado</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var p in (List<PlastiPack.API.Models.Pedido>)ViewBag.MisPedidosRecientes)
+                    {
+                        <tr>
+                            <td><a href="/Pedidos/Detalle/@p.Id">#@p.Id</a></td>
+                            <td>@(p.Cliente?.Nombre ?? "Interno")</td>
+                            <td>@p.FechaEntrega.ToString("dd/MM/yyyy")</td>
+                            <td>
+                                @if (p.Estado == "entregado")
+                                { <span class="badge-success">@p.Estado</span> }
+                                else if (p.Estado == "cancelado")
+                                { <span class="badge-danger">@p.Estado</span> }
+                                else
+                                { <span class="badge-info">@p.Estado</span> }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+        else
+        {
+            <p style="color: var(--color-mid); font-size: var(--font-size-sm);">No tienes pedidos recientes.</p>
+        }
+    </div>
+}
+
+@* ══════════════════════════════════════════
+   OPERARIO
+══════════════════════════════════════════ *@
+@if (esOperario)
+{
+    <div class="card-custom">
+        <p class="card-custom-title">Tu planilla de hoy</p>
+        @if (ViewBag.PlanillaHoy != null)
+        {
+            <p style="font-size: var(--font-size-sm); color: var(--color-mid); margin-bottom: 16px;">
+                Selladora: <strong>@ViewBag.NombreSelladora</strong> —
+                @ViewBag.TotalTareasHoy tarea(s) asignada(s)
+            </p>
+<a href="/Planillas/Detalle/@ViewBag.PlanillaHoyId" class="btn-primary-custom">
+                <i class="bi bi-clipboard-check"></i> Ver mi planilla
+            </a>
+        }
+        else
+        {
+            <p style="color: var(--color-mid); font-size: var(--font-size-sm);">
+                No tienes planilla asignada para hoy.
+            </p>
+        }
+    </div>
+}

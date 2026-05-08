@@ -24,7 +24,7 @@
     <form method="get" class="filter-bar">
         <input type="date" name="fecha" value="@ViewBag.FechaFiltro" class="form-control-custom" />
         <select name="operarioId" class="form-control-custom">
-            <option value="">Todos los operarios</option>
+            <option value="">Todos los Usuarios</option>
             @foreach (var op in (List<PlastiPack.API.Models.Usuario>)ViewBag.Operarios)
             {
                 <option value="@op.Id" selected="@(ViewBag.OperarioIdFiltro?.ToString() == op.Id.ToString())">
@@ -71,7 +71,7 @@
                         <strong>@item.Nombre</strong>
                     </div>
                     <div>
-                        <strong style="font-size:var(--font-size-md);color:var(--color-primary);">@((int)item.TotalUnidades).ToString("N0")</strong>
+                        <strong style="font-size:var(--font-size-md);color:var(--color-primary);">@(((int)item.TotalUnidades).ToString("N0"))</strong>
                         <span style="font-size:var(--font-size-sm);color:var(--color-mid);margin-left:4px;">unidades</span>
                     </div>
                 </div>
@@ -79,7 +79,7 @@
                     <div style="background:var(--color-primary);height:100%;width:@pct%;border-radius:999px;"></div>
                 </div>
                 <div style="font-size:var(--font-size-xs);color:var(--color-mid);margin-top:4px;">
-                    @item.NumRegistros registro(s) · @((decimal)item.TotalDesperdicio).ToString("N3") kg desperdicio
+                    @item.NumRegistros registro(s) · @(((decimal)item.TotalDesperdicio).ToString("N3")) kg desperdicio
                 </div>
             </div>
         }
@@ -108,7 +108,7 @@
                     <td>@(r.Operario?.Nombre ?? "—")</td>
                     <td>@(r.PlanillaItem?.Planilla?.Selladora?.Nombre ?? "—")</td>
                     <td><strong>@(r.PlanillaItem?.OrdenProceso?.OrdenProduccion?.Referencia?.Codigo ?? "—")</strong></td>
-                    <td><span class="badge-info">@(r.Rollo?.NumeroRollo ?? "—")</span></td>
+                    <td><span class="badge-info">@(r.NumeroRollo ?? "—")</span></td>
                     <td>@r.HoraInicio.ToString("HH:mm")</td>
                     <td>@(r.HoraFin?.ToString("HH:mm") ?? "—")</td>
                     <td><strong>@(r.CantidadUnidades?.ToString("N0") ?? "—")</strong></td>

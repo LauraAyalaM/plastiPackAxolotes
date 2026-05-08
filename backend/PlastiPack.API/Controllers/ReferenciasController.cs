@@ -200,7 +200,7 @@ namespace PlastiPack.API.Controllers
             existente.CodigoBarras    = model.CodigoBarras;
             existente.Presentacion    = model.Presentacion;
             existente.UnidadMedida    = model.UnidadMedida;
-
+            existente.RequiereRefilado = model.RequiereRefilado;
             await _context.SaveChangesAsync();
 
             TempData["Success"] = $"Referencia '{existente.Codigo}' actualizada correctamente.";
@@ -259,19 +259,20 @@ namespace PlastiPack.API.Controllers
             return RedirectToAction(nameof(Editar), new { id });
         }
 
-        // ── BUSQUEDA AJAX (para otros módulos) ──
+       // ── BUSQUEDA AJAX (para otros módulos) ──
         [HttpGet]
         public async Task<IActionResult> Buscar(string q)
         {
             var resultados = await _context.Referencias
                 .Include(r => r.Inventario)
                 .Where(r => r.Estado == "Activo" &&
-                           (r.Codigo.Contains(q) || r.Nombre!.Contains(q)))
+                        (r.Codigo.Contains(q) || r.Nombre!.Contains(q)))
                 .Take(10)
                 .Select(r => new {
                     r.Id,
                     r.Codigo,
                     r.Nombre,
+                    r.Impresion,   // ← esto es lo único que se agrega
                     Stock = r.Inventario != null ? r.Inventario.StockDisponible : 0
                 })
                 .ToListAsync();

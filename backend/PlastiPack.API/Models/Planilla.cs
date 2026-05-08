@@ -10,15 +10,14 @@ namespace PlastiPack.API.Models
         [Column("id")]
         public int Id { get; set; }
 
-        [Column("selladora_id")]
-        public int SelladroaId { get; set; }
+       [Column("selladora_id")]
+        public int SelladoraId { get; set; }
 
-        [ForeignKey("SelladroaId")]
+        [ForeignKey("SelladoraId")]
         public Selladora? Selladora { get; set; }
 
         [Column("fecha")]
-        public DateTime Fecha { get; set; }
-
+        public DateOnly Fecha { get; set; }
         [Column("creado_por")]
         public Guid? CreadoPor { get; set; }
 

@@ -77,8 +77,8 @@
                             </span>
                         </td>
                         <td>@item.NumRegistros</td>
-                        <td><strong>@((int)item.TotalUnidades).ToString("N0")</strong></td>
-                        <td>@((decimal)item.TotalDesperdicio).ToString("N3") kg</td>
+                        <td><strong>@(((int)item.TotalUnidades).ToString("N0"))</strong></td>
+                        <td>@(((decimal)item.TotalDesperdicio).ToString("N3")) kg</td>
                         <td>
                             @foreach (var op in (System.Collections.IEnumerable)item.Operarios)
                             {
@@ -114,8 +114,7 @@
                     <td>@(r.PlanillaItem?.Planilla?.Selladora?.Nombre ?? "—")</td>
                     <td>@(r.Operario?.Nombre ?? "—")</td>
                     <td><strong>@(r.PlanillaItem?.OrdenProceso?.OrdenProduccion?.Referencia?.Codigo ?? "—")</strong></td>
-                    <td><span class="badge-info">@(r.Rollo?.NumeroRollo ?? "—")</span></td>
-                    <td>@r.HoraInicio.ToString("HH:mm")</td>
+                    <td><span class="badge-info">@(r.NumeroRollo ?? "—")</span></td>                    <td>@r.HoraInicio.ToString("HH:mm")</td>
                     <td>@(r.HoraFin?.ToString("HH:mm") ?? "—")</td>
                     <td><strong>@(r.CantidadUnidades?.ToString("N0") ?? "—")</strong></td>
                     <td>@r.PesoDesperdicio.ToString("N3") kg</td>

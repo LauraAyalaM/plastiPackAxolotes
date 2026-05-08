@@ -33,18 +33,18 @@ namespace PlastiPack.API.Controllers
                     o.Referencia!.Codigo.Contains(busqueda) ||
                     o.PedidoId.ToString().Contains(busqueda));
 
-            var total = await query.CountAsync();
+            var total  = await query.CountAsync();
             var ordenes = await query
                 .OrderByDescending(o => o.CreatedAt)
                 .Skip((pagina - 1) * PageSize)
                 .Take(PageSize)
                 .ToListAsync();
 
-            ViewBag.Estado       = estado;
-            ViewBag.Busqueda     = busqueda;
-            ViewBag.PaginaActual = pagina;
-            ViewBag.TotalPaginas = (int)Math.Ceiling((double)total / PageSize);
-            ViewBag.Total        = total;
+            ViewBag.Estado         = estado;
+            ViewBag.Busqueda       = busqueda;
+            ViewBag.PaginaActual   = pagina;
+            ViewBag.TotalPaginas   = (int)Math.Ceiling((double)total / PageSize);
+            ViewBag.Total          = total;
             ViewData["ActivePage"] = "Ordenes";
             return View(ordenes);
         }
@@ -72,11 +72,11 @@ namespace PlastiPack.API.Controllers
                 .Include(p => p.Cliente)
                 .Include(p => p.Detalles)
                     .ThenInclude(d => d.Referencia)
-                .Where(p => p.Estado == "pendiente" || p.Estado == "en_produccion")
+                .Where(p => p.Estado == "en_produccion")
                 .OrderByDescending(p => p.FechaCreacion)
                 .ToListAsync();
 
-            ViewBag.Pedidos = pedidos;
+            ViewBag.Pedidos              = pedidos;
             ViewBag.PedidoIdSeleccionado = pedidoId;
 
             if (pedidoId.HasValue)
@@ -122,7 +122,7 @@ namespace PlastiPack.API.Controllers
             await _context.SaveChangesAsync();
 
             var secuencia = 1;
-            var procesos = new List<OrdenProceso>();
+            var procesos  = new List<OrdenProceso>();
 
             procesos.Add(new OrdenProceso
             {
@@ -163,11 +163,6 @@ namespace PlastiPack.API.Controllers
             });
 
             _context.OrdenProcesos.AddRange(procesos);
-
-            var pedido = await _context.Pedidos.FindAsync(pedidoId);
-            if (pedido != null && pedido.Estado == "pendiente")
-                pedido.Estado = "en_produccion";
-
             await _context.SaveChangesAsync();
 
             TempData["Success"] = $"Orden de producción #{orden.Id} creada con {procesos.Count} procesos.";
@@ -184,14 +179,27 @@ namespace PlastiPack.API.Controllers
 
             if (proceso == null) return NotFound();
 
+            var orden = await _context.OrdenesProduccion.FindAsync(ordenId);
+            if (orden == null) return NotFound();
+
             if (accion == "iniciar" && proceso.Estado == "pendiente")
             {
-                proceso.Estado     = "en_proceso";
+                proceso.Estado      = "en_proceso";
                 proceso.FechaInicio = DateTime.UtcNow;
+
+                // El estado de la orden refleja el proceso activo en este momento
+                orden.Estado = proceso.NombreProceso switch
+                {
+                    "extrusion" => "en_extrusion",
+                    "impresion" => "en_impresion",
+                    "refilado"  => "en_refilado",  // ← corregido
+                    "sellado"   => "en_sellado",
+                    _           => orden.Estado
+                };
             }
             else if (accion == "completar" && proceso.Estado == "en_proceso")
             {
-                proceso.Estado  = "completado";
+                proceso.Estado   = "completado";
                 proceso.FechaFin = DateTime.UtcNow;
 
                 var todosProcesos = await _context.OrdenProcesos
@@ -203,19 +211,51 @@ namespace PlastiPack.API.Controllers
 
                 if (todosTerminados)
                 {
-                    var orden = await _context.OrdenesProduccion.FindAsync(ordenId);
-                    if (orden != null) orden.Estado = "completada";
+                    orden.Estado = "completada";
+
+                    var todasOrdenesPedido = await _context.OrdenesProduccion
+                        .Where(o => o.PedidoId == orden.PedidoId)
+                        .ToListAsync();
+
+                    bool pedidoCompleto = todasOrdenesPedido.All(o =>
+                        o.Estado == "completada" || o.Estado == "cancelada");
+
+                    if (pedidoCompleto)
+                    {
+                        var pedido = await _context.Pedidos.FindAsync(orden.PedidoId);
+                        if (pedido != null) pedido.Estado = "completado";
+                    }
                 }
-                else
-                {
-                    var orden = await _context.OrdenesProduccion.FindAsync(ordenId);
-                    if (orden != null && orden.Estado == "pendiente")
-                        orden.Estado = "en_proceso";
-                }
+                // Si NO todos terminaron, el estado cambia cuando se inicie el siguiente
             }
             else if (accion == "omitir" && proceso.Estado == "pendiente")
             {
                 proceso.Estado = "omitido";
+
+                var todosProcesos = await _context.OrdenProcesos
+                    .Where(p => p.OrdenProduccionId == ordenId)
+                    .ToListAsync();
+
+                bool todosTerminados = todosProcesos.All(p =>
+                    p.Estado == "completado" || p.Estado == "omitido");
+
+                if (todosTerminados)
+                {
+                    orden.Estado = "completada";
+
+                    var todasOrdenesPedido = await _context.OrdenesProduccion
+                        .Where(o => o.PedidoId == orden.PedidoId)
+                        .ToListAsync();
+
+                    bool pedidoCompleto = todasOrdenesPedido.All(o =>
+                        o.Estado == "completada" || o.Estado == "cancelada");
+
+                    if (pedidoCompleto)
+                    {
+                        var pedido = await _context.Pedidos.FindAsync(orden.PedidoId);
+                        if (pedido != null) pedido.Estado = "completado";
+                    }
+                }
             }
 
             await _context.SaveChangesAsync();
@@ -232,11 +272,12 @@ namespace PlastiPack.API.Controllers
                 .Where(d => d.PedidoId == pedidoId)
                 .Select(d => new
                 {
-                    referenciaId     = d.ReferenciaId,
-                    codigo           = d.Referencia!.Codigo,
-                    nombre           = d.Referencia.Nombre,
-                    cantidad         = d.Cantidad,
-                    tieneImpresion   = d.Referencia.Impresion
+                    referenciaId   = d.ReferenciaId,
+                    codigo         = d.Referencia!.Codigo,
+                    nombre         = d.Referencia.Nombre,
+                    cantidad       = d.Cantidad,
+                    tieneImpresion = d.Referencia.Impresion,
+                    tieneRefilado  = d.Referencia.RequiereRefilado
                 })
                 .ToListAsync();
 

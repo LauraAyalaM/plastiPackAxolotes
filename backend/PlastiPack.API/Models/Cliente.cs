@@ -25,9 +25,6 @@ namespace PlastiPack.API.Models
         [Column("direccion")]
         public string? Direccion { get; set; }
 
-        [Column("tipo")]
-        public string Tipo { get; set; } = "externo"; // 'externo' o 'interno'
-
         [Column("activo")]
         public bool Activo { get; set; } = true;
 

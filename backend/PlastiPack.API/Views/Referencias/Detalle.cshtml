@@ -127,6 +127,12 @@
                 </span>
             </div>
             <div>
+                <div class="form-label-custom">Refilado</div>
+                <span class="@(Model.RequiereRefilado ? "badge-info" : "badge-warning")">
+                    @(Model.RequiereRefilado ? "Requiere refilado" : "Sin refilado")
+                </span>
+            </div>
+            <div>
                 <div class="form-label-custom">Tipo Impresión</div>
                 <div>@(Model.TipoImpresion ?? "—")</div>
             </div>

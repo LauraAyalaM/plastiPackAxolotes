@@ -17,7 +17,7 @@ namespace PlastiPack.API.Controllers
             _context = context;
         }
 
-        public async Task<IActionResult> Index(string? fecha, int? selladoaId, int pagina = 1)
+        public async Task<IActionResult> Index(string? fecha, int? selladoraId, int pagina = 1)
         {
             var query = _context.Planillas
                 .Include(p => p.Selladora)
@@ -26,33 +26,28 @@ namespace PlastiPack.API.Controllers
                 .AsQueryable();
 
             if (!string.IsNullOrWhiteSpace(fecha) &&
-                DateTime.TryParse(fecha, out var fechaParsed))
+                DateOnly.TryParse(fecha, out var fechaParsed))
             {
-                var inicio = fechaParsed.Date;
-                var fin = inicio.AddDays(1);
-
-                query = query.Where(p =>
-                    p.Fecha >= inicio &&
-                    p.Fecha < fin);
+                query = query.Where(p => p.Fecha == fechaParsed);
             }
 
-            if (selladoaId.HasValue)
-                query = query.Where(p => p.SelladroaId == selladoaId.Value);
+            if (selladoraId.HasValue)
+                query = query.Where(p => p.SelladoraId == selladoraId.Value);
 
-            var total = await query.CountAsync();
+            var total     = await query.CountAsync();
             var planillas = await query
                 .OrderByDescending(p => p.Fecha)
-                .ThenBy(p => p.SelladroaId)
+                .ThenBy(p => p.SelladoraId)
                 .Skip((pagina - 1) * PageSize)
                 .Take(PageSize)
                 .ToListAsync();
 
-            ViewBag.Selladoras    = await _context.Selladoras.Where(s => s.Activa).OrderBy(s => s.Id).ToListAsync();
-            ViewBag.FechaFiltro   = fecha;
-            ViewBag.SelladoraId   = selladoaId;
-            ViewBag.PaginaActual  = pagina;
-            ViewBag.TotalPaginas  = (int)Math.Ceiling((double)total / PageSize);
-            ViewBag.Total         = total;
+            ViewBag.Selladoras     = await _context.Selladoras.Where(s => s.Activa).OrderBy(s => s.Id).ToListAsync();
+            ViewBag.FechaFiltro    = fecha;
+            ViewBag.SelladoraId    = selladoraId;
+            ViewBag.PaginaActual   = pagina;
+            ViewBag.TotalPaginas   = (int)Math.Ceiling((double)total / PageSize);
+            ViewBag.Total          = total;
             ViewData["ActivePage"] = "Planillas";
             return View(planillas);
         }
@@ -69,9 +64,6 @@ namespace PlastiPack.API.Controllers
                 .Include(p => p.Items)
                     .ThenInclude(i => i.Registros)
                         .ThenInclude(r => r.Operario)
-                .Include(p => p.Items)
-                    .ThenInclude(i => i.Registros)
-                        .ThenInclude(r => r.Rollo)
                 .FirstOrDefaultAsync(p => p.Id == id);
 
             if (planilla == null) return NotFound();
@@ -88,6 +80,15 @@ namespace PlastiPack.API.Controllers
                 .OrderBy(s => s.Id)
                 .ToListAsync();
 
+            // IDs de procesos que ya están asignados a alguna planilla
+            var idsYaAsignados = await _context.PlanillaItems
+                .Select(pi => pi.OrdenProcesoId)
+                .ToHashSetAsync();
+
+            // Solo procesos de sellado:
+            //   - cuya orden esté en_sellado
+            //   - que estén pendientes (no iniciados ni completados)
+            //   - que no estén asignados a ninguna planilla existente
             var procesosSellado = await _context.OrdenProcesos
                 .Include(op => op.OrdenProduccion)
                     .ThenInclude(o => o!.Referencia)
@@ -95,21 +96,23 @@ namespace PlastiPack.API.Controllers
                     .ThenInclude(o => o!.Pedido)
                         .ThenInclude(p => p!.Cliente)
                 .Where(op => op.NombreProceso == "sellado"
-                          && (op.Estado == "pendiente" || op.Estado == "en_proceso"))
-                .OrderBy(op => op.OrdenProduccion!.CreatedAt)
+          && (op.Estado == "pendiente" || op.Estado == "en_proceso") // ← agregar en_proceso
+          && op.OrdenProduccion!.Estado == "en_sellado"
+          && !idsYaAsignados.Contains(op.Id))
+                .OrderBy(op => op.OrdenProduccion!.Pedido!.FechaEntrega)
                 .ToListAsync();
 
-            ViewBag.Selladoras       = selladoras;
-            ViewBag.ProcesosSellado  = procesosSellado;
-            ViewBag.FechaHoy         = DateTime.UtcNow.ToString("yyyy-MM-dd");
-            ViewData["ActivePage"]   = "Planillas";
+            ViewBag.Selladoras      = selladoras;
+            ViewBag.ProcesosSellado = procesosSellado;
+            ViewBag.FechaHoy        = DateOnly.FromDateTime(DateTime.UtcNow).ToString("yyyy-MM-dd");
+            ViewData["ActivePage"]  = "Planillas";
             return View();
         }
 
         [HttpPost]
         [Authorize(Roles = "jefe_produccion")]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Crear(int selladoaId, DateTime fecha, List<int> procesosIds)
+        public async Task<IActionResult> Crear(int selladoraId, string fecha, List<int> procesosIds)
         {
             if (!procesosIds.Any())
             {
@@ -117,8 +120,37 @@ namespace PlastiPack.API.Controllers
                 return RedirectToAction(nameof(Crear));
             }
 
+            if (!DateOnly.TryParse(fecha, out var fechaDate))
+            {
+                TempData["Error"] = "Fecha inválida.";
+                return RedirectToAction(nameof(Crear));
+            }
+
+            // IDs de procesos que ya están asignados a alguna planilla
+            var idsYaAsignados = await _context.PlanillaItems
+                .Select(pi => pi.OrdenProcesoId)
+                .ToHashSetAsync();
+
+            // Validar que todos los procesos enviados sean sellado de órdenes en_sellado,
+            // que estén pendientes y que no tengan planilla asignada
+            var procesosValidos = await _context.OrdenProcesos
+                .Include(op => op.OrdenProduccion)
+                .Where(op => procesosIds.Contains(op.Id)
+                          && op.NombreProceso == "sellado"
+                          && (op.Estado == "pendiente" || op.Estado == "en_proceso")
+                          && op.OrdenProduccion!.Estado == "en_sellado"
+                          && !idsYaAsignados.Contains(op.Id))
+                .ToListAsync();
+
+            if (procesosValidos.Count != procesosIds.Count)
+            {
+                TempData["Error"] = "Algunos procesos seleccionados no están disponibles para sellado " +
+                                    "(ya fueron asignados, iniciados o completados).";
+                return RedirectToAction(nameof(Crear));
+            }
+
             var existe = await _context.Planillas
-                .AnyAsync(p => p.SelladroaId == selladoaId && p.Fecha.Date == fecha.Date);
+                .AnyAsync(p => p.SelladoraId == selladoraId && p.Fecha == fechaDate);
 
             if (existe)
             {
@@ -131,19 +163,19 @@ namespace PlastiPack.API.Controllers
 
             var planilla = new Planilla
             {
-                SelladroaId  = selladoaId,
-                Fecha        = fecha.Date,
-                CreadoPor    = userId,
-                CreatedAt    = DateTime.UtcNow
+                SelladoraId = selladoraId,
+                Fecha       = fechaDate,
+                CreadoPor   = userId,
+                CreatedAt   = DateTime.UtcNow
             };
 
             _context.Planillas.Add(planilla);
             await _context.SaveChangesAsync();
 
-            var items = procesosIds.Select((pId, idx) => new PlanillaItem
+            var items = procesosValidos.Select((p, idx) => new PlanillaItem
             {
                 PlanillaId     = planilla.Id,
-                OrdenProcesoId = pId,
+                OrdenProcesoId = p.Id,
                 Posicion       = idx + 1,
                 Estado         = "pendiente"
             }).ToList();
@@ -151,7 +183,7 @@ namespace PlastiPack.API.Controllers
             _context.PlanillaItems.AddRange(items);
             await _context.SaveChangesAsync();
 
-            TempData["Success"] = $"Planilla creada con {items.Count} ítem(s) para {fecha:dd/MM/yyyy}.";
+            TempData["Success"] = $"Planilla creada con {items.Count} ítem(s) para {fechaDate:dd/MM/yyyy}.";
             return RedirectToAction(nameof(Detalle), new { id = planilla.Id });
         }
 
@@ -174,6 +206,7 @@ namespace PlastiPack.API.Controllers
                 {
                     proceso.Estado      = "en_proceso";
                     proceso.FechaInicio = DateTime.UtcNow;
+                    // La orden ya está en en_sellado, no se modifica
                 }
             }
 

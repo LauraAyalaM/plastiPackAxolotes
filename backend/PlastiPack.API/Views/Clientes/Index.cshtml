@@ -27,18 +27,10 @@
             <input name="busqueda" value="@ViewBag.Busqueda" class="form-control-custom"
                    placeholder="Nombre o NIT..." />
         </div>
-        <div class="form-group" style="min-width:160px; margin:0">
-            <label class="form-label-custom">Tipo</label>
-            <select name="tipo" class="form-control-custom">
-                <option value="">Todos</option>
-                <option value="externo" selected="@(ViewBag.Tipo == "externo")">Externo</option>
-                <option value="interno" selected="@(ViewBag.Tipo == "interno")">Interno</option>
-            </select>
-        </div>
         <button type="submit" class="btn-primary-custom">
             <i class="bi bi-search"></i> Filtrar
         </button>
-        @if (!string.IsNullOrEmpty(ViewBag.Busqueda as string) || !string.IsNullOrEmpty(ViewBag.Tipo as string))
+        @if (!string.IsNullOrEmpty(ViewBag.Busqueda as string))
         {
             <a asp-action="Index" class="btn-secondary-custom">
                 <i class="bi bi-x-lg"></i> Limpiar
@@ -65,7 +57,6 @@
                     <th>NIT</th>
                     <th>Teléfono</th>
                     <th>Email</th>
-                    <th>Tipo</th>
                     <th>Estado</th>
                     <th style="text-align:right">Acciones</th>
                 </tr>
@@ -78,11 +69,6 @@
                         <td>@(c.Nit ?? "—")</td>
                         <td>@(c.Telefono ?? "—")</td>
                         <td>@(c.Email ?? "—")</td>
-                        <td>
-                            <span class="badge-custom @(c.Tipo == "interno" ? "badge-info" : "badge-neutral")">
-                                @c.Tipo
-                            </span>
-                        </td>
                         <td>
                             <span class="badge-custom @(c.Activo ? "badge-success" : "badge-danger")">
                                 @(c.Activo ? "Activo" : "Inactivo")
@@ -121,7 +107,6 @@
                 {
                     <a asp-action="Index"
                        asp-route-busqueda="@ViewBag.Busqueda"
-                       asp-route-tipo="@ViewBag.Tipo"
                        asp-route-pagina="@i"
                        class="page-item-custom @(i == ViewBag.PaginaActual ? "active" : "")">@i</a>
                 }

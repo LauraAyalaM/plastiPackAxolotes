@@ -18,7 +18,7 @@ namespace PlastiPack.API.Controllers
         }
 
         // ── LISTADO ──
-        public async Task<IActionResult> Index(string? busqueda, string? tipo, int pagina = 1)
+        public async Task<IActionResult> Index(string? busqueda, int pagina = 1)
         {
             var query = _context.Clientes.AsQueryable();
 
@@ -28,9 +28,7 @@ namespace PlastiPack.API.Controllers
                     (c.Nit != null && c.Nit.Contains(busqueda)) ||
                     (c.Email != null && c.Email.Contains(busqueda)));
 
-            if (!string.IsNullOrWhiteSpace(tipo))
-                query = query.Where(c => c.Tipo == tipo);
-
+           
             var total = await query.CountAsync();
             var clientes = await query
                 .OrderBy(c => c.Nombre)
@@ -39,7 +37,6 @@ namespace PlastiPack.API.Controllers
                 .ToListAsync();
 
             ViewBag.Busqueda     = busqueda;
-            ViewBag.Tipo         = tipo;
             ViewBag.PaginaActual = pagina;
             ViewBag.TotalPaginas = (int)Math.Ceiling((double)total / PageSize);
             ViewBag.Total        = total;
@@ -123,7 +120,6 @@ namespace PlastiPack.API.Controllers
             existente.Telefono  = model.Telefono;
             existente.Email     = model.Email;
             existente.Direccion = model.Direccion;
-            existente.Tipo      = model.Tipo;
             existente.Activo    = model.Activo;
 
             await _context.SaveChangesAsync();
@@ -156,10 +152,29 @@ namespace PlastiPack.API.Controllers
                            (c.Nombre.Contains(q) ||
                             (c.Nit != null && c.Nit.Contains(q))))
                 .Take(10)
-                .Select(c => new { c.Id, c.Nombre, c.Nit, c.Tipo })
+                .Select(c => new { c.Id, c.Nombre, c.Nit})
                 .ToListAsync();
 
             return Json(resultados);
+        }
+        // ── CREAR AJAX (desde modal en pedidos) ──
+        [HttpPost]
+        [Authorize(Roles = "vendedor,jefe_produccion")]
+        public async Task<IActionResult> CrearAjax(Cliente model)
+        {
+            if (string.IsNullOrWhiteSpace(model.Nombre))
+                return BadRequest(new { error = "El nombre es obligatorio." });
+
+            if (!string.IsNullOrWhiteSpace(model.Nit) &&
+                await _context.Clientes.AnyAsync(c => c.Nit == model.Nit))
+                return BadRequest(new { error = "Ya existe un cliente con ese NIT." });
+
+            model.CreatedAt = DateTime.UtcNow;
+            model.Activo    = true;
+            _context.Clientes.Add(model);
+            await _context.SaveChangesAsync();
+
+            return Ok(new { id = model.Id, nombre = model.Nombre, nit = model.Nit });
         }
     }
 }

@@ -6,8 +6,7 @@ namespace PlastiPack.API.Models
     [Table("rollos")]
     public class Rollo
     {
-        [Key]
-        [Column("id")]
+        [Key][Column("id")]
         public int Id { get; set; }
 
         [Column("numero_rollo")]
@@ -25,11 +24,18 @@ namespace PlastiPack.API.Models
         [Column("marca_impresa")]
         public string? MarcaImpresa { get; set; }
 
+        [Column("orden_produccion_id")]
+        public int? OrdenProduccionId { get; set; }
+
+        [ForeignKey("OrdenProduccionId")]
+        public OrdenProduccion? OrdenProduccion { get; set; }
+
         [Column("peso_kg")]
         public decimal? PesoKg { get; set; }
 
+        // disponible | en_proceso | usado | defectuoso
         [Column("estado")]
-        public string Estado { get; set; } = "disponible"; // 'disponible', 'en_proceso', 'usado', 'defectuoso'
+        public string Estado { get; set; } = "disponible";
 
         [Column("created_at")]
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;

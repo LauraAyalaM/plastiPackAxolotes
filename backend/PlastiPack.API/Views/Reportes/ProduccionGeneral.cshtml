@@ -72,13 +72,14 @@
                     var pct = maxDia > 0 ? (int)((int)d.TotalUnidades * 100 / maxDia) : 0;
                     <div style="display:grid;grid-template-columns:90px 1fr 80px;align-items:center;gap:10px;">
                         <span style="font-size:var(--font-size-xs);color:var(--color-mid);text-align:right;">
-                            @((DateTime)d.Fecha).ToString("dd/MM")
+                            @(((DateOnly)d.Fecha).ToString("dd/MM"))
                         </span>
                         <div style="background:var(--color-surface);border-radius:4px;height:20px;overflow:hidden;">
                             <div style="background:var(--color-primary);height:100%;width:@pct%;border-radius:4px;"></div>
                         </div>
                         <span style="font-size:var(--font-size-xs);font-weight:600;color:var(--color-dark);">
-                            @((int)d.TotalUnidades).ToString("N0")
+                           @(((int)d.TotalUnidades).ToString("N0"))
+
                         </span>
                     </div>
                 }
@@ -102,7 +103,7 @@
                     <div>
                         <div style="display:flex;justify-content:space-between;margin-bottom:3px;">
                             <span style="font-size:var(--font-size-xs);font-weight:600;color:var(--color-dark);">@r.Codigo</span>
-                            <span style="font-size:var(--font-size-xs);color:var(--color-mid);">@((int)r.TotalUnidades).ToString("N0")</span>
+                            <span style="font-size:var(--font-size-xs);color:var(--color-mid);">@(((int)r.TotalUnidades).ToString("N0"))</span>
                         </div>
                         <div style="background:var(--color-surface);border-radius:999px;height:6px;">
                             <div style="background:@barColor;height:100%;width:@pct%;border-radius:999px;"></div>
@@ -133,9 +134,9 @@
                 {
                     var promedio = (int)d.NumRegistros > 0 ? (int)d.TotalUnidades / (int)d.NumRegistros : 0;
                     <tr>
-                        <td>@((DateTime)d.Fecha).ToString("dd/MM/yyyy")</td>
-                        <td><strong>@((int)d.TotalUnidades).ToString("N0")</strong></td>
-                        <td>@((decimal)d.TotalDesperdicio).ToString("N3") kg</td>
+                        <td>@(((DateOnly)d.Fecha).ToString("dd/MM/yyyy"))</td>
+                        <td><strong>@(((int)d.TotalUnidades).ToString("N0"))</strong></td>
+                        <td>@(((decimal)d.TotalDesperdicio).ToString("N3")) kg</td>
                         <td>@d.NumRegistros</td>
                         <td style="color:var(--color-mid);">@promedio.ToString("N0")</td>
                     </tr>

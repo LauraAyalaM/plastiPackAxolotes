@@ -30,43 +30,66 @@
             @Html.AntiForgeryToken()
 
             <div class="form-grid-2" style="margin-bottom:16px;">
+
+                <!-- Número de rollo -->
                 <div class="form-group">
                     <label class="form-label-custom">Número de rollo *</label>
                     <input asp-for="NumeroRollo" class="form-control-custom"
                            placeholder="Ej: R-2026-001" required />
-                    <span asp-validation-for="NumeroRollo" style="color:var(--color-danger);font-size:12px;"></span>
+                    <span asp-validation-for="NumeroRollo"
+                          style="color:var(--color-danger);font-size:12px;"></span>
                 </div>
+
+                <!-- Buscador de referencia -->
                 <div class="form-group">
                     <label class="form-label-custom">Referencia *</label>
-                    <select asp-for="ReferenciaId" class="form-control-custom" required>
-                        <option value="">— Selecciona —</option>
-                        @foreach (var r in (List<PlastiPack.API.Models.Referencia>)ViewBag.Referencias)
-                        {
-                            <option value="@r.Id">@r.Codigo — @r.Nombre</option>
-                        }
-                    </select>
+                    <div style="position:relative">
+                        <input type="text"
+                               id="input-buscar-ref"
+                               class="form-control-custom"
+                               placeholder="Buscar por código o nombre..."
+                               autocomplete="off" />
+                        <input type="hidden"
+                               id="hidden-referencia-id"
+                               asp-for="ReferenciaId" />
+                        <div id="resultados-ref"
+                             style="display:none; position:absolute; z-index:100; width:100%;
+                                    background:var(--color-white); border:1px solid var(--color-border);
+                                    border-radius:8px; box-shadow:0 4px 16px rgba(0,0,0,.1);
+                                    margin-top:4px; max-height:220px; overflow-y:auto">
+                        </div>
+                    </div>
+                    <span id="ref-seleccionada-label"
+                          style="font-size:12px; color:var(--color-mid); margin-top:4px; display:none"></span>
+                    <span asp-validation-for="ReferenciaId"
+                          style="color:var(--color-danger);font-size:12px;"></span>
                 </div>
             </div>
 
-            <div class="form-group" style="margin-bottom:16px;">
-                <label class="form-label-custom">Peso (kg)</label>
-                <input asp-for="PesoKg" type="number" step="0.001"
-                       class="form-control-custom" placeholder="Ej: 45.500" />
-            </div>
+            <!-- Peso -->
+<div class="form-group" style="margin-bottom:16px;">
+    <label class="form-label-custom">Peso (kg)</label>
+    <input asp-for="PesoKg" type="number" step="0.001"
+           class="form-control-custom" placeholder="Ej: 45.500" />
+</div>
 
-            <div style="margin-bottom:16px;padding:16px;background:var(--color-surface);border-radius:8px;">
-                <label style="display:flex;align-items:center;gap:10px;cursor:pointer;margin-bottom:12px;">
-                    <input asp-for="TieneImpresion" id="chkImpresion" style="width:16px;height:16px;" />
-                    <span style="font-weight:500;">¿Tiene impresión?</span>
-                </label>
-                <div id="campoMarca" style="display:none;">
-                    <label class="form-label-custom">Marca impresa</label>
-                    <input asp-for="MarcaImpresa" class="form-control-custom"
-                           placeholder="Nombre de la marca" />
-                </div>
-            </div>
+<!-- Este input FUERA del bloque para que siempre se envíe -->
+<input type="hidden" asp-for="TieneImpresion" id="hidden-impresion" value="false" />
 
-            <div style="display:flex;gap:12px;">
+<div id="bloque-impresion"
+     style="display:none; margin-bottom:16px; padding:16px;
+            background:var(--color-surface); border-radius:8px;">
+    <p style="font-weight:600; margin:0 0 10px 0; font-size:13px; color:var(--color-mid)">
+        <i class="bi bi-printer"></i> Esta referencia tiene impresión
+    </p>
+    <div class="form-group" style="margin:0">
+        <label class="form-label-custom">Marca impresa</label>
+        <input asp-for="MarcaImpresa" class="form-control-custom"
+               placeholder="Nombre de la marca" />
+    </div>
+</div>
+
+            <div style="display:flex; gap:12px;">
                 <button type="submit" class="btn-primary-custom">
                     <i class="bi bi-save"></i> Registrar
                 </button>
@@ -78,11 +101,94 @@
 
 @section Scripts {
 <script>
-const chk = document.getElementById('chkImpresion');
-const campo = document.getElementById('campoMarca');
-chk.addEventListener('change', () => {
-    campo.style.display = chk.checked ? 'block' : 'none';
-});
-if (chk.checked) campo.style.display = 'block';
+(function () {
+    const inputBuscar      = document.getElementById('input-buscar-ref');
+    const hiddenRefId      = document.getElementById('hidden-referencia-id');
+    const resultadosRef    = document.getElementById('resultados-ref');
+    const refLabel         = document.getElementById('ref-seleccionada-label');
+    const bloqueImpresion  = document.getElementById('bloque-impresion');
+    const hiddenImpresion  = document.getElementById('hidden-impresion');
+
+    let debounce = null;
+
+    // ── Búsqueda con debounce ──
+    inputBuscar.addEventListener('input', () => {
+        clearTimeout(debounce);
+        hiddenRefId.value      = '';
+        refLabel.style.display = 'none';
+        bloqueImpresion.style.display = 'none';
+        hiddenImpresion.value  = 'false';
+
+        const q = inputBuscar.value.trim();
+        if (q.length < 2) { resultadosRef.style.display = 'none'; return; }
+        debounce = setTimeout(() => buscarReferencias(q), 300);
+    });
+
+    async function buscarReferencias(q) {
+        resultadosRef.innerHTML     = '<p style="padding:10px 14px;font-size:13px;color:var(--color-mid)">Buscando...</p>';
+        resultadosRef.style.display = '';
+        try {
+            // Reutiliza el endpoint existente /Referencias/Buscar
+            // NOTA: necesitas agregar el campo "impresion" al Select del endpoint Buscar
+            const res  = await fetch(`/Referencias/Buscar?q=${encodeURIComponent(q)}`);
+            const data = await res.json();
+
+            if (!data.length) {
+                resultadosRef.innerHTML = '<p style="padding:10px 14px;font-size:13px;color:var(--color-mid)">Sin resultados.</p>';
+                return;
+            }
+
+            resultadosRef.innerHTML = data.map(r => `
+                <div class="ref-result-item"
+                     data-id="${r.id}"
+                     data-codigo="${r.codigo}"
+                     data-nombre="${r.nombre ?? ''}"
+                     data-impresion="${r.impresion ?? false}"
+                     style="padding:10px 14px; cursor:pointer; font-size:13px;
+                            border-bottom:1px solid var(--color-border);
+                            display:flex; justify-content:space-between; align-items:center">
+                    <span><strong>${r.codigo}</strong> — ${r.nombre ?? ''}</span>
+                    ${r.impresion
+                        ? '<span style="font-size:11px;color:var(--color-mid)"><i class="bi bi-printer"></i> Impresión</span>'
+                        : ''}
+                </div>`).join('');
+
+            resultadosRef.querySelectorAll('.ref-result-item').forEach(el => {
+                el.addEventListener('mouseenter', () => el.style.background = 'var(--color-light)');
+                el.addEventListener('mouseleave', () => el.style.background = '');
+                el.addEventListener('click', () => seleccionarReferencia(el));
+            });
+        } catch {
+            resultadosRef.innerHTML = '<p style="padding:10px 14px;font-size:13px;color:var(--color-danger)">Error al buscar.</p>';
+        }
+    }
+
+    function seleccionarReferencia(el) {
+        const tieneImpresion = el.dataset.impresion === 'true';
+
+        hiddenRefId.value      = el.dataset.id;
+        inputBuscar.value      = `${el.dataset.codigo} — ${el.dataset.nombre}`;
+        refLabel.textContent   = '✓ Referencia seleccionada';
+        refLabel.style.display = '';
+        resultadosRef.style.display = 'none';
+
+        // Mostrar/ocultar bloque impresión según la referencia
+        if (tieneImpresion) {
+            hiddenImpresion.value         = 'true';
+            bloqueImpresion.style.display = '';
+        } else {
+            hiddenImpresion.value         = 'false';
+            bloqueImpresion.style.display = 'none';
+        }
+    }
+
+    // Cerrar dropdown al hacer clic fuera
+    document.addEventListener('click', e => {
+        if (!inputBuscar.closest('.form-group').contains(e.target)) {
+            resultadosRef.style.display = 'none';
+        }
+    });
+
+})();
 </script>
 }

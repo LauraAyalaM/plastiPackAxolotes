@@ -5,11 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>@ViewData["Title"] — PlastiPack</title>
 
-    <!-- Bootstrap Icons -->
     <link rel="stylesheet"
           href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"/>
-
-    <!-- Estilos PlastiPack -->
     <link rel="stylesheet" href="~/css/variables.css" />
     <link rel="stylesheet" href="~/css/site.css" />
 
@@ -17,67 +14,97 @@
 </head>
 <body>
 
-    <!-- SIDEBAR -->
     <aside class="sidebar">
-        <div class="sidebar-logo">Plasti<span>Pack</span></div>
+        <div class="sidebar-nav">
 
-        <span class="sidebar-section-label">Principal</span>
-        <a class="sidebar-item @(ViewData["ActivePage"]?.ToString() == "Dashboard" ? "active" : "")"
-           asp-controller="Home" asp-action="Index">
-            <i class="bi bi-grid-1x2"></i> Dashboard
-        </a>
+            <div class="sidebar-logo">Plasti<span>Pack</span></div>
 
-        <span class="sidebar-section-label">Catálogo</span>
-        <a class="sidebar-item @(ViewData["ActivePage"]?.ToString() == "Referencias" ? "active" : "")"
-           asp-controller="Referencias" asp-action="Index">
-            <i class="bi bi-box-seam"></i> Referencias
-        </a>
-
-        <span class="sidebar-section-label">Comercial</span>
-        <a class="sidebar-item @(ViewData["ActivePage"]?.ToString() == "Pedidos" ? "active" : "")"
-           asp-controller="Pedidos" asp-action="Index">
-            <i class="bi bi-cart3"></i> Pedidos
-        </a>
-        <a class="sidebar-item @(ViewData["ActivePage"]?.ToString() == "Clientes" ? "active" : "")"
-           asp-controller="Clientes" asp-action="Index">
-            <i class="bi bi-people"></i> Clientes
-        </a>
-
-        <span class="sidebar-section-label">Producción</span>
-        <a class="sidebar-item @(ViewData["ActivePage"]?.ToString() == "Ordenes" ? "active" : "")"
-           asp-controller="OrdenesProduccion" asp-action="Index">
-            <i class="bi bi-gear"></i> Órdenes
-        </a>
-        <a class="sidebar-item @(ViewData["ActivePage"]?.ToString() == "Rollos" ? "active" : "")"
-           asp-controller="Rollos" asp-action="Index">
-            <i class="bi bi-recycle"></i> Rollos
-        </a>
-
-        <span class="sidebar-section-label">Sellado</span>
-        <a class="sidebar-item @(ViewData["ActivePage"]?.ToString() == "Planillas" ? "active" : "")"
-           asp-controller="Planillas" asp-action="Index">
-            <i class="bi bi-clipboard-check"></i> Planillas
-        </a>
-        <a class="sidebar-item @(ViewData["ActivePage"]?.ToString() == "Sellado" ? "active" : "")"
-           asp-controller="Sellado" asp-action="Index">
-            <i class="bi bi-tools"></i> Registro Sellado
-        </a>
-        <a class="sidebar-item @(ViewData["ActivePage"]?.ToString() == "Reportes" ? "active" : "")"
-           asp-controller="Reportes" asp-action="Index">
-            <i class="bi bi-bar-chart-line"></i> Reportes
-        </a>
-
-        @if (User.IsInRole("jefe_produccion"))
-        {
-            <span class="sidebar-section-label">Sistema</span>
-            <a class="sidebar-item @(ViewData["ActivePage"]?.ToString() == "Usuarios" ? "active" : "")"
-            asp-controller="Usuarios" asp-action="Index">
-                <i class="bi bi-person-gear"></i> Usuarios
+            @* ── PRINCIPAL (todos) ──  *@
+            <span class="sidebar-section-label">Principal</span>
+            <a class="sidebar-item @(ViewData["ActivePage"]?.ToString() == "Dashboard" ? "active" : "")"
+               asp-controller="Home" asp-action="Index">
+                <i class="bi bi-grid-1x2"></i> Dashboard
             </a>
-        }
 
-        <!-- USUARIO ACTIVO + CERRAR SESIÓN -->
-        <div class
+            @* ── CATÁLOGO (solo jefe) ──  *@
+            @if (User.IsInRole("jefe_produccion"))
+            {
+                <span class="sidebar-section-label">Catálogo</span>
+                <a class="sidebar-item @(ViewData["ActivePage"]?.ToString() == "Referencias" ? "active" : "")"
+                   asp-controller="Referencias" asp-action="Index">
+                    <i class="bi bi-box-seam"></i> Referencias
+                </a>
+            }
+
+            @* ── COMERCIAL (vendedor y jefe) ──  *@
+            @if (User.IsInRole("vendedor") || User.IsInRole("jefe_produccion"))
+            {
+                <span class="sidebar-section-label">Comercial</span>
+                <a class="sidebar-item @(ViewData["ActivePage"]?.ToString() == "Pedidos" ? "active" : "")"
+                   asp-controller="Pedidos" asp-action="Index">
+                    <i class="bi bi-cart3"></i> Pedidos
+                </a>
+                <a class="sidebar-item @(ViewData["ActivePage"]?.ToString() == "Clientes" ? "active" : "")"
+                   asp-controller="Clientes" asp-action="Index">
+                    <i class="bi bi-people"></i> Clientes
+                </a>
+            }
+
+            @* ── PRODUCCIÓN (solo jefe) ──  *@
+            @if (User.IsInRole("jefe_produccion"))
+            {
+                <span class="sidebar-section-label">Producción</span>
+                <a class="sidebar-item @(ViewData["ActivePage"]?.ToString() == "Ordenes" ? "active" : "")"
+                   asp-controller="OrdenesProduccion" asp-action="Index">
+                    <i class="bi bi-gear"></i> Órdenes
+                </a>
+            }
+
+            @* ── SELLADO (operario y jefe) ──  *@
+            @if (User.IsInRole("operario") || User.IsInRole("jefe_produccion"))
+            {
+                <span class="sidebar-section-label">Sellado</span>
+
+                @* Planillas: ambos la ven  *@
+                <a class="sidebar-item @(ViewData["ActivePage"]?.ToString() == "Planillas" ? "active" : "")"
+                   asp-controller="Planillas" asp-action="Index">
+                    <i class="bi bi-clipboard-check"></i> Planillas
+                </a>
+
+                @* Registro Sellado: ambos lo ven  *@
+                <a class="sidebar-item @(ViewData["ActivePage"]?.ToString() == "Sellado" ? "active" : "")"
+                   asp-controller="Sellado" asp-action="Index">
+                    <i class="bi bi-tools"></i> Registro Sellado
+                </a>
+
+                @* Mis Registros: solo operario  *@
+                @if (User.IsInRole("operario"))
+                {
+                    <a class="sidebar-item @(ViewData["ActivePage"]?.ToString() == "MisRegistros" ? "active" : "")"
+                       asp-controller="Sellado" asp-action="MisRegistros">
+                        <i class="bi bi-journal-text"></i> Mis Registros
+                    </a>
+                }
+            }
+
+            @* ── REPORTES Y SISTEMA (solo jefe) ──  *@
+            @if (User.IsInRole("jefe_produccion"))
+            {
+                <a class="sidebar-item @(ViewData["ActivePage"]?.ToString() == "Reportes" ? "active" : "")"
+                   asp-controller="Reportes" asp-action="Index">
+                    <i class="bi bi-bar-chart-line"></i> Reportes
+                </a>
+
+                <span class="sidebar-section-label">Sistema</span>
+                <a class="sidebar-item @(ViewData["ActivePage"]?.ToString() == "Usuarios" ? "active" : "")"
+                   asp-controller="Usuarios" asp-action="Index">
+                    <i class="bi bi-person-gear"></i> Usuarios
+                </a>
+            }
+
+        </div>
+
+        <div class="sidebar-footer">
             <div class="sidebar-user">
                 <div class="sidebar-user-avatar">
                     <i class="bi bi-person-fill"></i>
@@ -98,12 +125,11 @@
                 </button>
             </form>
         </div>
+
     </aside>
 
-    <!-- CONTENIDO PRINCIPAL -->
     <main class="main-content">
 
-        <!-- Alertas globales desde TempData -->
         @if (TempData["Success"] != null)
         {
             <div class="alert-custom alert-success">
