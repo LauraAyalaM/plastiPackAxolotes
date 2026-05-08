@@ -43,6 +43,7 @@ else
                 <thead>
                     <tr>
                         <th>Pos.</th>
+                        <th>Orden</th>
                         <th>Referencia</th>
                         <th>Cantidad</th>
                         <th>Estado</th>
@@ -61,6 +62,9 @@ else
                                 <span style="background:var(--color-primary);color:#fff;border-radius:50%;width:24px;height:24px;display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;">
                                     @item.Posicion
                                 </span>
+                            </td>
+                            <td>
+                                <strong>@(item.OrdenProceso?.OrdenProduccion?.Id.ToString() ?? "—")</strong>
                             </td>
                             <td>
                                 <strong>@(ref_?.Codigo ?? "—")</strong>
